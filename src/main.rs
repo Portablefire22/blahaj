@@ -1,18 +1,27 @@
 use core::fmt;
-use std::{io::{stdout, Read, Write}, isize, net::{IpAddr, TcpListener, TcpStream}, thread, usize};
+use std::{collections::HashMap, io::{stdout, Read, Write}, isize, net::{IpAddr, TcpListener, TcpStream}, thread, usize};
 
-use log::{debug, error, info};
+use log::{debug, error, info, trace};
 use serde::Serialize;
 use simple_logger::SimpleLogger;
 use types::varint::{self, ivar};
 
 mod types;
 
-const ADDR: &'static str= "127.0.0.1:25565";
-
 struct Server<'a> {
     address: &'a str,
-    connections: Vec<Player>,
+    connections: HashMap<String, TcpStream>,
+    players: HashMap<String, Player>,
+}
+
+impl Server<'_> {
+    pub fn new(address: &'static str) -> Self {
+        Self {
+            address,
+            connections: HashMap::new(),
+            players: HashMap::new(),
+        }
+    }
 }
 
 struct Player {
@@ -23,7 +32,9 @@ struct Player {
 }
 
 fn main() {
-    let listener = match TcpListener::bind(ADDR) {
+    let server = Server::new("127.0.0.1:25565");
+    
+    let listener = match TcpListener::bind(server.address) {
         Ok(l) => l,
         Err(e) => panic!("{e:?}"),
     };
@@ -54,7 +65,6 @@ fn handle_connection(mut stream: TcpStream) {
         if buf[0] == 0 {
             break;
         }
-        // println!("{buf:?}");
         
         let length_ivar = ivar::read(&buf).unwrap();
         let length = length_ivar.length();
@@ -98,7 +108,9 @@ fn handshake(stream: &mut TcpStream, buffer: &[u8]) {
         HandshakeState::Status => {
             status(stream);
         },
-        HandshakeState::Login => {},
+        HandshakeState::Login => {
+            login(stream);
+        },
         HandshakeState::Transfer => {},
         HandshakeState::Unknown => {
             match stream.local_addr() {
@@ -106,7 +118,18 @@ fn handshake(stream: &mut TcpStream, buffer: &[u8]) {
                 Err(e) => error!("Could not get ip from client!\n{e:?}"),
             }
             let _ = stream.shutdown(std::net::Shutdown::Both);
+            return;
         },
+    }
+    // The conncetion has passed the vibe check
+    loop {
+        let mut buf: [u8; 1024] = [0; 1024];
+        let _ =stream.read(&mut buf);
+        if buf[0] == 0 {
+            break;
+        }
+        trace!("{buf:?}");
+        trace!("{}", convert_buf_to_string(&buf));
     }
 }
 
