@@ -4,7 +4,7 @@ use std::{collections::HashMap, io::{stdout, Read, Write}, isize, net::{IpAddr, 
 use log::{debug, error, info, trace};
 use serde::{de::Error, Serialize};
 use simple_logger::SimpleLogger;
-use types::varint::{self, ivar};
+use types::varint::{self, ivar, VarIntDecodeError};
 use std::sync::{Arc, Mutex};
 
 mod types;
@@ -138,13 +138,16 @@ fn start_connection(stream: TcpStream) {
         if buf[0] == 0 {
             break;
         }
-        
+                
         // First value (variable length integer) is length of packet ID + data byte array
         // So lets cut down the 4096 byte array to just the relevant data
         let length_ivar = ivar::read(&buf).unwrap();
         let length = length_ivar.length();
-        let buf = &buf[length..=length_ivar.value as usize];
+
+        let raw_buffer = &buf[..=length_ivar.value as usize]; // Some packets can be sent back
         
+        let buf = &buf[length..=length_ivar.value as usize];
+
         let packet_id_ivar = ivar::read(buf).unwrap();
         let packet_id = packet_id_ivar.value;
 
@@ -188,7 +191,15 @@ fn start_connection(stream: TcpStream) {
                 }
             },
             ConnectionState::Status => {
-                status(&mut connection.stream);
+                match packet_id {
+                    0x00 => {
+                        status(&mut connection.stream);
+                    },
+                    0x01 => {
+                        ping(&mut connection.stream, &raw_buffer);
+                    }
+                    _ => unimplemented!(),
+                }
             },
             _ => unimplemented!(),
         }
@@ -240,6 +251,20 @@ fn status(stream: &mut TcpStream) {
     let length = ivar::new(buffer.len() as i32).as_bytes();
     let _ = stream.write_all(&length);
     let _ = stream.write_all(&buffer);
+}
+
+fn ping(stream: &mut TcpStream, data: &[u8]) {
+    debug!("{data:?}");
+    let _ = stream.write_all(data);
+}
+
+fn read_packet_id(buffer: &[u8]) -> Result<ivar, VarIntDecodeError> {
+    ivar::read(buffer)
+}
+
+fn write_packet_id(buffer: &mut Vec<u8>, id: i32) {
+    let mut data = ivar::new(id).as_bytes();
+    buffer.append(&mut data);
 }
 
 fn write_utf8_string(buffer: &mut Vec<u8>, text: String) {
