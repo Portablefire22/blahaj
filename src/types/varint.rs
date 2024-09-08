@@ -1,5 +1,6 @@
 use std::{error::Error, isize};
 use log::error;
+use serde::{Deserializer, Serializer};
 
 #[derive(Debug)]
 pub struct VarInt {
@@ -64,6 +65,22 @@ impl VarInt {
         bytes
     }
 }
+
+impl<'de> serde::Deserialize<'de> for ivar {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let s = i32::deserialize(d)?;
+        Ok(ivar::new(s))
+    }
+}
+impl serde::Serialize for ivar {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> 
+        where S: Serializer,
+    {
+        serializer.serialize_i32(self.value)
+    }
+}
+
+
 
 #[derive(Debug)]
 pub enum VarIntDecodeError {
