@@ -1,6 +1,7 @@
 using System.Net;
+using blahaj.Network;
 
-namespace blahaj.Events;
+namespace blahaj.Network.Events;
 
 public class ConnectionClosedArgs
 {

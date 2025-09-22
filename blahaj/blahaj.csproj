@@ -13,4 +13,10 @@
       <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0-rc.1.25451.107" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="blahaj.Network\appsettings.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

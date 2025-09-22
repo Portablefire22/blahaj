@@ -1,15 +1,15 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
-using blahaj.Events;
+using blahaj.Network.Events;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace blahaj;
+namespace blahaj.Network;
 
 public class NetServer : IDisposable
 {
-    private readonly ILogger<NetServer> _logger;
+    private ILogger<NetServer> Logger { get; }
     private IConfigurationRoot _config;
     private TcpListener Listener;
     private ConcurrentDictionary<EndPoint, NetClient> Connections;
@@ -17,15 +17,14 @@ public class NetServer : IDisposable
     public NetServer()
     {
         using ILoggerFactory factory = LoggerFactory.Create(build => build.AddConsole());
-        _logger = factory.CreateLogger<NetServer>();
+        Logger = factory.CreateLogger<NetServer>();
         
         _config = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json")
+            .AddJsonFile("blahaj.Network/appsettings.json")
             .Build();
         Connections = new ConcurrentDictionary<EndPoint, NetClient>();
     }
-
-    private void Run()
+    public void Run()
     {
         var ipEndPoint = new IPEndPoint(IPAddress.Parse(_config["ip"]), int.Parse(_config["port"]));
         Listener = new TcpListener(ipEndPoint);
@@ -42,21 +41,29 @@ public class NetServer : IDisposable
         
         if (!client.Connected) return;
 
-        var netClient = new NetClient();
-        var endpoint = client.Client.RemoteEndPoint;
+        var netClient = new NetClient(client);
+        var endpoint = netClient.RemoteEndPoint;
         if (endpoint == null) return;
         if (!Connections.TryAdd(endpoint, netClient)) return;
-        _logger.LogInformation($"Added client: {endpoint}");
+        Logger.LogInformation($"Added client: {endpoint}");
         netClient.OnConnectionClosed += (sender, args) => OnClientDisconnect(args);
+        netClient.OnPacketReceived += (sender, args) => OnPacketReceived(args);
+        
+        netClient.Initialise();
     }
 
+    private void OnPacketReceived(PacketReceivedArgs args)
+    {
+        
+    }
+    
     private void OnClientDisconnect(ConnectionClosedArgs args)
     {
         var endpoint = args.Connection.RemoteEndPoint;
         if (endpoint == null) return;
         if (Connections.TryRemove(endpoint, out var cl))
         {
-            _logger.LogInformation($"Client Disconnected: {cl.RemoteEndPoint}");
+            Logger.LogInformation($"Client Disconnected: {cl.RemoteEndPoint}");
         }
     }
 
