@@ -277,7 +277,21 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 
     public int ReadVarInt()
     {
-        throw new NotImplementedException();
+        int result = 0, shift = 0;
+        var size = sizeof(int);
+        byte b;
+        do
+        {
+            b = ReadUnsignedByte();
+            result |= (b & 0x7f) << shift;
+            shift += 7;
+        } while ((b & 0x80) != 0);
+
+        if ((shift < size) && ((b & 0x40) != 0))
+        {
+            result |= (~0 << shift);
+        }
+        return result;
     }
 
     public int ReadVarLong()
