@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using blahaj.blahaj.Stream;
 using blahaj.Network.Packets;
 using blahaj.Network.Events;
 using Microsoft.Extensions.Logging;
@@ -60,10 +61,14 @@ public class NetClient : IDisposable
         var bf = new byte[4096];
         try
         {
-            while (!ShouldStop)
+            using NetworkStream ns = TcpClient.GetStream();
+            using (MinecraftStream ms = new MinecraftStream(ns))
             {
-                TcpClient.GetStream().Read(bf);
-            }
+                while (true)
+                {
+                    
+                }
+            };
         }
         finally
         {
