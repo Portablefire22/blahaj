@@ -3,19 +3,19 @@ namespace blahaj.blahaj.Stream;
 public interface MinecraftWriter
 {
     public bool WriteBool();
-    public sbyte WriteByte();
-    public byte WriteUnsignedByte();
+    public void WriteByte(sbyte b);
+    public void WriteUnsignedByte(byte b);
     public short WriteShort();
     public ushort WriteUnsignedShort();
     public int WriteInt();
     public long WriteLong();
     public float WriteFloat();
     public double WriteDouble();
-    public string WriteString();
+    public void WriteString(string str);
     public object WriteTextComponent();
     public object WriteJsonTextComponent();
     public object WriteIdentifier();
-    public int WriteVarInt();
+    public void WriteVarInt(int val);
     public int WriteVarLong();
     public object WriteEntityMetadata();
     public object WriteSlot();
@@ -30,7 +30,7 @@ public interface MinecraftWriter
     public T[] WriteArray<T>();
     public T WriteEnum<T>();
     public T[] WriteEnumSet<T>();
-    public byte[] WriteByteArray();
+    public void WriteByteArray(byte[] arr);
     public object WriteId();
     public object[] WriteIdSet();
     public object WriteSoundEvent();

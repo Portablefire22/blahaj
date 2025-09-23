@@ -1,18 +1,19 @@
 using System.Net.Sockets;
+using System.Text;
 
 namespace blahaj.blahaj.Stream;
 
 public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 {
-    private NetworkStream NetworkStream { get; }
+    private System.IO.Stream Stream { get; }
 
-    public MinecraftStream(NetworkStream ns)
+    public MinecraftStream(System.IO.Stream ns)
     {
-        NetworkStream = ns;
+        Stream = ns;
     }
     public void Dispose()
     {
-        NetworkStream.Dispose();
+        Stream.Dispose();
     }
 
     public bool WriteBool()
@@ -20,14 +21,14 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public sbyte WriteByte()
+    public void WriteByte(sbyte b)
     {
-        throw new NotImplementedException();
+        Stream.WriteByte((byte) b);
     }
 
-    public byte WriteUnsignedByte()
+    public void WriteUnsignedByte(byte b)
     {
-        throw new NotImplementedException();
+        Stream.WriteByte(b);
     }
 
     public short WriteShort()
@@ -60,9 +61,10 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public string WriteString()
+    public void WriteString(string str)
     {
-        throw new NotImplementedException();
+        WriteVarInt(str.Length);
+        WriteByteArray(Encoding.UTF8.GetBytes(str));
     }
 
     public object WriteTextComponent()
@@ -80,9 +82,18 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public int WriteVarInt()
+    public void WriteVarInt(int val)
     {
-        throw new NotImplementedException();
+        while (true)
+        {
+            if ((val & ~0x7f) == 0)
+            {
+                Stream.WriteByte((byte)val);
+                break;
+            }
+            Stream.WriteByte((byte) ((val & 0x7f) | 0x80));
+            val >>>= 7;
+        }
     }
 
     public int WriteVarLong()
@@ -155,9 +166,9 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public byte[] WriteByteArray()
+    public void WriteByteArray(byte[] arr)
     {
-        throw new NotImplementedException();
+        Stream.Write(arr);
     }
 
     public object WriteId()
@@ -222,17 +233,19 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 
     public byte ReadUnsignedByte()
     {
-        throw new NotImplementedException();
+        return (byte) Stream.ReadByte();
     }
 
     public short ReadShort()
     {
-        throw new NotImplementedException();
+        var dat = ReadByteArray(2);
+        return BitConverter.ToInt16(dat);
     }
 
     public ushort ReadUnsignedShort()
     {
-        throw new NotImplementedException();
+        var dat = ReadByteArray(2);
+        return BitConverter.ToUInt16(dat);
     }
 
     public int ReadInt()
@@ -257,7 +270,9 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 
     public string ReadString()
     {
-        throw new NotImplementedException();
+        var length = ReadVarInt();
+        var dat = ReadByteArray(length);
+        return Encoding.UTF8.GetString(dat);
     }
 
     public object ReadTextComponent()
@@ -364,9 +379,11 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public byte[] ReadByteArray()
+    public byte[] ReadByteArray(int count)
     {
-        throw new NotImplementedException();
+        var data = new byte[count];
+        Stream.ReadExactly(data, 0, count);
+        return data;
     }
 
     public object ReadId()

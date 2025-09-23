@@ -1,7 +1,11 @@
 using System.Collections.Concurrent;
+using System.Drawing;
 using System.Net;
+using System.Net.Mime;
 using System.Net.Sockets;
 using blahaj.Network.Events;
+using blahaj.Network.Packets;
+using blahaj.Network.Packets.Handshake;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -10,23 +14,36 @@ namespace blahaj.Network;
 public class NetServer : IDisposable
 {
     private ILogger<NetServer> Logger { get; }
-    private IConfigurationRoot _config;
+    public IConfigurationRoot Config { get; }
     private TcpListener Listener;
     private ConcurrentDictionary<EndPoint, NetClient> Connections;
+    public string Favicon { get; }
 
     public NetServer()
     {
         using ILoggerFactory factory = LoggerFactory.Create(build => build.AddConsole());
         Logger = factory.CreateLogger<NetServer>();
         
-        _config = new ConfigurationBuilder()
+        Config = new ConfigurationBuilder()
             .AddJsonFile("blahaj.Network/appsettings.json")
             .Build();
         Connections = new ConcurrentDictionary<EndPoint, NetClient>();
+
+        var favicon = Config["favicon"];
+        var path = favicon != null ? favicon : "placeholder.png";
+        using (var image = Image.FromFile(path))
+        {
+            using (var m = new MemoryStream())
+            {
+                image.Save(m, image.RawFormat);
+                var imageBytes = m.ToArray();
+                Favicon = Convert.ToBase64String(imageBytes);
+            }
+        }
     }
     public void Run()
     {
-        var ipEndPoint = new IPEndPoint(IPAddress.Parse(_config["ip"]), int.Parse(_config["port"]));
+        var ipEndPoint = new IPEndPoint(IPAddress.Parse(Config["ip"]), int.Parse(Config["port"]));
         Listener = new TcpListener(ipEndPoint);
         Listener.Start();
         Listener.BeginAcceptTcpClient(ConnectionCallback, null);
@@ -41,21 +58,16 @@ public class NetServer : IDisposable
         
         if (!client.Connected) return;
 
-        var netClient = new NetClient(client);
+        var netClient = new NetClient(client, this);
         var endpoint = netClient.RemoteEndPoint;
         if (endpoint == null) return;
         if (!Connections.TryAdd(endpoint, netClient)) return;
         Logger.LogInformation($"Added client: {endpoint}");
         netClient.OnConnectionClosed += (sender, args) => OnClientDisconnect(args);
-        netClient.OnPacketReceived += (sender, args) => OnPacketReceived(args);
         
         netClient.Initialise();
     }
 
-    private void OnPacketReceived(PacketReceivedArgs args)
-    {
-        
-    }
     
     private void OnClientDisconnect(ConnectionClosedArgs args)
     {

@@ -11,10 +11,17 @@
       <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0-rc.1.25451.107" />
       <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0-rc.1.25451.107" />
       <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0-rc.1.25451.107" />
+      <PackageReference Include="System.Drawing.Common" Version="10.0.0-rc.1.25451.107" />
     </ItemGroup>
 
     <ItemGroup>
       <None Update="blahaj.Network\appsettings.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="favicon.png">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="placeholder.png">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>
