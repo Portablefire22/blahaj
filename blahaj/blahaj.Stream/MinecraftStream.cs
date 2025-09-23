@@ -46,9 +46,9 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public long WriteLong()
+    public void WriteLong(long val)
     {
-        throw new NotImplementedException();
+        Stream.Write(BitConverter.GetBytes(val));
     }
 
     public float WriteFloat()
@@ -255,7 +255,8 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 
     public long ReadLong()
     {
-        throw new NotImplementedException();
+        var dat = ReadByteArray(8);
+        return BitConverter.ToInt64(dat);
     }
 
     public float ReadFloat()

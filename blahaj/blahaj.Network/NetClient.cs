@@ -94,9 +94,12 @@ public class NetClient : IDisposable
                         data = ms.ReadByteArray(length - 1);
                     }
                     var packet = MinecraftPacketFactory.GetPacket(ConnectionState, packetId);
-                    if (packet == null) continue;
+                    if (packet == null)
+                    {
+                        Logger.LogCritical($"Unknown Packet ID: {packetId}, State: {ConnectionState}");
+                        continue;
+                    }
                     packet.Read(new MinecraftStream(new MemoryStream(data)));
-
                     var args = new PacketReceivedArgs(packet);
                     OnPacketReceived?.Invoke(this, args);
                 }
@@ -145,10 +148,18 @@ public class NetClient : IDisposable
             case StatusRequestPacket statusRequestPacket:
                 HandleStatusResponse(statusRequestPacket);
                 break;
+            case PingPacket pingPacket:
+                HandlePing(pingPacket);
+                break;
             default:
                 Logger.LogCritical($"Invalid packet: {packet.Id}");
                 break;
         }
+    }
+
+    private void HandlePing(PingPacket packet)
+    {
+        WriteQueue.Add(packet);
     }
 
     private void HandleStatusResponse(StatusRequestPacket packet)
@@ -175,8 +186,10 @@ public class NetClient : IDisposable
                 {
                     packet.Write(st);
                 }
-                ms.WriteVarInt(stream.GetBuffer().Length);
-                ms.WriteByteArray(stream.GetBuffer());
+
+                var arr = stream.ToArray();
+                ms.WriteVarInt(arr.Length);
+                ms.WriteByteArray(arr);
                 stream.Dispose();
             }
         }

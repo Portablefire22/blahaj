@@ -8,7 +8,7 @@ public interface MinecraftWriter
     public short WriteShort();
     public ushort WriteUnsignedShort();
     public int WriteInt();
-    public long WriteLong();
+    public void WriteLong(long val);
     public float WriteFloat();
     public double WriteDouble();
     public void WriteString(string str);

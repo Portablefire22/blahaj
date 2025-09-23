@@ -51,6 +51,7 @@ public static class MinecraftPacketFactory
         Register<HandshakePacket>(ConnectionState.Handshake);
         
         Register<StatusRequestPacket>(ConnectionState.Status);
+        Register<PingPacket>(ConnectionState.Status);
     }
     
     private static void Register<Pt>(ConnectionState state) where Pt : Packet, new()
