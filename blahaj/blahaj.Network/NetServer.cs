@@ -8,6 +8,8 @@ using blahaj.Network.Packets;
 using blahaj.Network.Packets.Handshake;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace blahaj.Network;
 
@@ -31,11 +33,15 @@ public class NetServer : IDisposable
 
         var favicon = Config["favicon"];
         var path = favicon != null ? favicon : "placeholder.png";
-        using (var image = Image.FromFile(path))
+        using (var image = Image.Load(path))
         {
             using (var m = new MemoryStream())
             {
-                image.Save(m, image.RawFormat);
+                if (image.Width != 64 || image.Height != 64)
+                {
+                    image.Mutate(x => x.Resize(64,64));
+                }
+                image.SaveAsPng(m);
                 var imageBytes = m.ToArray();
                 Favicon = Convert.ToBase64String(imageBytes);
             }
