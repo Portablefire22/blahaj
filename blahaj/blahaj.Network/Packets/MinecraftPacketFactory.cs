@@ -1,4 +1,5 @@
 using blahaj.blahaj.Stream;
+using blahaj.Network.Packets.Configuration;
 using blahaj.Network.Packets.Handshake;
 using blahaj.Network.Packets.Login;
 using blahaj.Network.Packets.Status;
@@ -10,14 +11,16 @@ public static class MinecraftPacketFactory
     private static PacketFactory<ConnectionState, MinecraftStream, Packet> HandshakePacketFactory { get; }
     private static PacketFactory<ConnectionState, MinecraftStream, Packet> StatusPacketFactory { get; }
     private static PacketFactory<ConnectionState, MinecraftStream, Packet> LoginPacketFactory { get; }
-    private static PacketFactory<ConnectionState, MinecraftStream, Packet> TransferPacketFactory { get; }
+    private static PacketFactory<ConnectionState, MinecraftStream, Packet> ConfigurationPacketFactory { get; }
+    private static PacketFactory<ConnectionState, MinecraftStream, Packet> PlayPacketFactory { get; }
     
     static MinecraftPacketFactory()
     {
         HandshakePacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
         StatusPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
         LoginPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
-        TransferPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
+        ConfigurationPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
+        PlayPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
 
         RegisterPackets();
     }
@@ -37,8 +40,11 @@ public static class MinecraftPacketFactory
             case ConnectionState.Login:
                 success = LoginPacketFactory.TryGet(packetId, out packet);
                 break;
-            case ConnectionState.Transfer:
-                success = TransferPacketFactory.TryGet(packetId, out packet);
+            case ConnectionState.Configuration:
+                success = ConfigurationPacketFactory.TryGet(packetId, out packet);
+                break;  
+            case ConnectionState.Play:
+                success = PlayPacketFactory.TryGet(packetId, out packet);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);
@@ -56,6 +62,9 @@ public static class MinecraftPacketFactory
 
         Register<LoginStartPacket>(ConnectionState.Login);
         Register<EncryptionResponsePacket>(ConnectionState.Login);
+        Register<LoginAcknowledgedPacket>(ConnectionState.Login);
+
+        Register<BrandPacket>(ConnectionState.Configuration);
     }
     
     private static void Register<Pt>(ConnectionState state) where Pt : Packet, new()
@@ -70,8 +79,8 @@ public static class MinecraftPacketFactory
             case ConnectionState.Login:
                 Register<Pt>(LoginPacketFactory);
                 break;
-            case ConnectionState.Transfer:
-                Register<Pt>(TransferPacketFactory);
+            case ConnectionState.Configuration:
+                Register<Pt>(ConfigurationPacketFactory);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);

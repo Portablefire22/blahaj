@@ -12,6 +12,7 @@ using blahaj.blahaj.Player;
 using blahaj.blahaj.Stream;
 using blahaj.Network.Packets;
 using blahaj.Network.Events;
+using blahaj.Network.Packets.Configuration;
 using blahaj.Network.Packets.Handshake;
 using blahaj.Network.Packets.Login;
 using blahaj.Network.Packets.Login.Json;
@@ -144,8 +145,11 @@ public class NetClient : IDisposable
             case ConnectionState.Login:
                 HandleLogin(args.Packet);
                 break;
+            case ConnectionState.Configuration:
+                HandleConfiguration(args.Packet);
+                break;
             default:
-                Logger.LogCritical($"Invalid packet: {args.Packet.Id}");
+                Logger.LogCritical($"Invalid State: {ConnectionState}");
                 break;
         } 
     }
@@ -192,12 +196,14 @@ public class NetClient : IDisposable
             case EncryptionResponsePacket encryptionResponsePacket:
                 HandleEncryptionResponse(encryptionResponsePacket);
                 break;
+            case LoginAcknowledgedPacket loginAcknowledgedPacket:
+                ConnectionState = ConnectionState.Configuration;
+                break;
             default:
                 Logger.LogCritical($"Invalid Login packet: {packet.Id}");
                 break;
         }
-    }
-    private void HandleLoginStart(LoginStartPacket packet)
+    }private void HandleLoginStart(LoginStartPacket packet)
     {
         Player = new MinecraftPlayer(packet.Name, packet.Uuid);
         Logger.LogInformation($"Connecting Player: {packet.Name} {packet.Uuid}");
@@ -243,7 +249,7 @@ public class NetClient : IDisposable
                 Disconnect();
                 return;
             }
-            Logger.LogInformation("Authenitcation Successful");
+            Logger.LogInformation("Authentication Successful");
         }
         ReaderStream.InitEncryption(packet.SharedSecret, false);
         WriterStream.InitEncryption(packet.SharedSecret, true);
@@ -259,6 +265,26 @@ public class NetClient : IDisposable
     {
         var packet = new LoginSuccessPacket(json);
         WriteQueue.Add(packet);
+    }
+
+    private void HandleConfiguration(Packet packet)
+    {
+        switch (packet)
+        {
+            case BrandPacket brandPacket:
+                HandleBrand(brandPacket);
+                break;
+            default:
+                Logger.LogCritical($"Invalid Configuration packet: {packet.Id}");
+                break;
+        }
+    }
+
+
+    private void HandleBrand(BrandPacket packet)
+    {
+        var brand = new BrandPacket("Blahaj");
+        WriteQueue.Add(brand);
     }
     
     private void HandleStatusResponse(StatusRequestPacket packet)
@@ -285,7 +311,7 @@ public class NetClient : IDisposable
                 var stream = new MemoryStream();
                 using (var st = new MinecraftStream(stream))
                 {
-                    st.WriteVarInt(packet.Id);
+                    st.WriteVarInt(packet.WriteId);
                     packet.Write(st);
                 }
 
