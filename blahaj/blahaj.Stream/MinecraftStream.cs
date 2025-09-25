@@ -1,17 +1,35 @@
 using System.Net.Sockets;
 using System.Numerics;
+using System.Security.Cryptography;
 using System.Text;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.IO;
+using Org.BouncyCastle.Crypto.Modes;
+using Org.BouncyCastle.Crypto.Parameters;
 
 namespace blahaj.blahaj.Stream;
 
 public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 {
-    private System.IO.Stream Stream { get; }
+    private System.IO.Stream Stream { get; set; }
 
     public MinecraftStream(System.IO.Stream ns)
     {
         Stream = ns;
     }
+
+    public void InitEncryption(byte[] key, bool isWriting)
+    {
+        var EncryptCipher = new BufferedBlockCipher(new CfbBlockCipher(new AesEngine(), 8));
+        EncryptCipher
+            .Init(true, new ParametersWithIV(new KeyParameter(key), key, 0 ,16));
+        var DecryptCipher = new BufferedBlockCipher(new CfbBlockCipher(new AesEngine(), 8));
+        DecryptCipher
+            .Init(false, new ParametersWithIV(new KeyParameter(key), key, 0, 16));
+        Stream = new CipherStream(Stream, DecryptCipher, EncryptCipher);
+    }
+    
     public void Dispose()
     {
         Stream.Dispose();
@@ -127,9 +145,15 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public Guid WriteUuid()
+    public void WriteUuid(Guid uuid)
     {
-        throw new NotImplementedException();
+        var guid = uuid.ToByteArray();
+        var l1 = new byte[8];
+        var l2 = new byte[8];
+        Array.Copy(guid, 0, l1, 0, 8);
+        Array.Copy(guid, 8, l2, 0, 8);
+        WriteByteArray(l1);
+        WriteByteArray(l2);
     }
 
     public object WriteBitSet()
@@ -147,20 +171,27 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public T? WritePrefixedOptional<T>()
+    public void WritePrefixedOptionalString(string? str)
     {
-        throw new NotImplementedException();
+        WriteBool(str != null);
+        if (str != null)
+        {
+            WriteString(str);
+        }
     }
 
-    public void WriteArray<T>(T[] arr)
+    public void WritePrefixedByteArray(byte[] arr)
     {
-        throw new NotImplementedException();
-    }
-
-    public void WritePrefixedArray<T>(T[] arr)
-    {
+        if (arr == null)
+        {
+            WriteVarInt(0);
+            return;
+        }
         WriteVarInt(arr.Length);
-        WriteArray<T>(arr);
+        foreach (var item in arr)
+        {
+            WriteByte((sbyte)item);
+        }
     }
 
     public T WriteEnum<T>()
@@ -235,12 +266,14 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 
     public sbyte ReadByte()
     {
-        throw new NotImplementedException();
+        var b = Stream.ReadByte();
+        if (b == -1) throw new EndOfStreamException();
+        return (sbyte)b;
     }
 
     public byte ReadUnsignedByte()
     {
-        return (byte) Stream.ReadByte();
+        return (byte) ReadByte();
     }
 
     public short ReadShort()
@@ -349,7 +382,8 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 
     public Guid ReadUuid()
     {
-        throw new NotImplementedException();
+        var dat = ReadByteArray(16);
+        return new Guid(dat);
     }
 
     public object ReadBitSet()
@@ -391,6 +425,13 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
     {
         var data = new byte[count];
         Stream.ReadExactly(data, 0, count);
+        return data;
+    }
+    public byte[] ReadPrefixedByteArray()
+    {
+        var length = ReadVarInt();
+        var data = new byte[length];
+        Stream.ReadExactly(data, 0, length);
         return data;
     }
 

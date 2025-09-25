@@ -1,12 +1,20 @@
 using System.Collections.Concurrent;
 using System.Drawing;
 using System.Net;
+using System.Net.Http.Json;
 using System.Net.Mime;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using blahaj.blahaj.Crypto;
+using blahaj.blahaj.Player;
 using blahaj.blahaj.Stream;
 using blahaj.Network.Packets;
 using blahaj.Network.Events;
 using blahaj.Network.Packets.Handshake;
+using blahaj.Network.Packets.Login;
+using blahaj.Network.Packets.Login.Json;
 using blahaj.Network.Packets.Status;
 using blahaj.Network.Packets.Status.Json;
 using Microsoft.Extensions.Logging;
@@ -22,6 +30,8 @@ public class NetClient : IDisposable
    
     public EndPoint? RemoteEndPoint { get; }
 
+    private MinecraftPlayer Player { get; set; }
+    
     public bool UseCompression = false;
     private ConnectionState ConnectionState { get; set; } = ConnectionState.Handshake;
     
@@ -32,8 +42,13 @@ public class NetClient : IDisposable
     private Task NetworkWriting { get; set; }
 
     private BlockingCollection<Packet> WriteQueue { get; }
+
+    private byte[]? RandomToken;
     
     private bool ShouldStop { get; set; }
+    
+    private MinecraftStream ReaderStream { get; set; }
+    private MinecraftStream WriterStream { get; set; }
 
     public NetClient(TcpClient tcpClient, NetServer server)
     {
@@ -49,7 +64,7 @@ public class NetClient : IDisposable
         
         WriteQueue = new BlockingCollection<Packet>();
         ShouldStop = false;
-
+        Player = new MinecraftPlayer();
     }
 
     public void Stop()
@@ -80,10 +95,13 @@ public class NetClient : IDisposable
             using NetworkStream ns = TcpClient.GetStream();
             using (MinecraftStream ms = new MinecraftStream(ns))
             {
+                ReaderStream = ms;
                 while (true)
                 {
                     var length = ms.ReadVarInt();
+                    Logger.LogInformation($"Packet Size: {length}");
                     var packetId = ms.ReadVarInt();
+                    Logger.LogInformation($"Packet ID: {packetId}");
                     byte[] data;
                     if (UseCompression)
                     {
@@ -102,6 +120,7 @@ public class NetClient : IDisposable
                     packet.Read(new MinecraftStream(new MemoryStream(data)));
                     var args = new PacketReceivedArgs(packet);
                     OnPacketReceived?.Invoke(this, args);
+                    Thread.Sleep(100);
                 }
             };
         }
@@ -122,6 +141,9 @@ public class NetClient : IDisposable
             case ConnectionState.Status:
                 HandleStatus(args.Packet);
                 break;
+            case ConnectionState.Login:
+                HandleLogin(args.Packet);
+                break;
             default:
                 Logger.LogCritical($"Invalid packet: {args.Packet.Id}");
                 break;
@@ -136,7 +158,7 @@ public class NetClient : IDisposable
                 ConnectionState = handshakePacket.Intent;
                 break;
             default:
-                Logger.LogCritical($"Invalid packet: {packet.Id}");
+                Logger.LogCritical($"Invalid Handshake packet: {packet.Id}");
                 break;
         }
     }
@@ -151,10 +173,81 @@ public class NetClient : IDisposable
             case PingPacket pingPacket:
                 HandlePing(pingPacket);
                 break;
+            case EncryptionResponsePacket encryptionResponsePacket:
+                HandleEncryptionResponse(encryptionResponsePacket);
+                break;
             default:
-                Logger.LogCritical($"Invalid packet: {packet.Id}");
+                Logger.LogCritical($"Invalid Status packet: {packet.Id}");
                 break;
         }
+    }
+    
+    private void HandleLogin(Packet packet)
+    {
+        switch (packet)
+        {
+            case LoginStartPacket loginStartPacket:
+                HandleLoginStart(loginStartPacket);
+                break;
+            case EncryptionResponsePacket encryptionResponsePacket:
+                HandleEncryptionResponse(encryptionResponsePacket);
+                break;
+            default:
+                Logger.LogCritical($"Invalid Login packet: {packet.Id}");
+                break;
+        }
+    }
+    private void HandleLoginStart(LoginStartPacket packet)
+    {
+        Player = new MinecraftPlayer(packet.Name, packet.Uuid);
+        Logger.LogInformation($"Connecting Player: {packet.Name} {packet.Uuid}");
+        SendEncryptionRequest();
+    }
+
+    private void SendEncryptionRequest()
+    {
+        var packet = new EncryptionRequestPacket("BlahajCSharpMeowPurr", true);
+        RandomToken = packet.VerifyToken;
+        WriteQueue.Add(packet);
+    }
+
+    private void HandleEncryptionResponse(EncryptionResponsePacket packet)
+    {
+        string serverHash;
+        LoginSuccessJson? json;
+        using (var ms = new MemoryStream())
+        {
+            var ascii = Encoding.ASCII.GetBytes("BlahajCSharpMeowPurr");
+            ms.Write(ascii, 0, ascii.Length);
+            ms.Write(packet.SharedSecret, 0, 16);
+            var publicKey = Encryption.ExportKeyAsDer();
+            ms.Write(publicKey, 0, publicKey.Length);
+            serverHash = MinecraftShaDigest.Sha(ms.ToArray());
+        }
+        using (var client = new HttpClient())
+        {
+            client.BaseAddress = new Uri("https://sessionserver.mojang.com/");
+            Logger.LogDebug($"{client.BaseAddress}session/minecraft/hasJoined?username={Player.Name}&serverId={serverHash}");
+            var res = client.GetStringAsync($"session/minecraft/hasJoined?username={Player.Name}&serverId={serverHash}").Result;
+            if (res.Length == 0) {
+                Disconnect();
+                return;
+            }
+
+            var options = new JsonSerializerOptions()
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            json = JsonSerializer.Deserialize<LoginSuccessJson>(res, options);  
+            if (json == null) {
+                Disconnect();
+                return;
+            }
+            Logger.LogInformation("Authenitcation Successful");
+        }
+        ReaderStream.InitEncryption(packet.SharedSecret, false);
+        WriterStream.InitEncryption(packet.SharedSecret, true);
+        SendLoginSuccess(json);
     }
 
     private void HandlePing(PingPacket packet)
@@ -162,6 +255,12 @@ public class NetClient : IDisposable
         WriteQueue.Add(packet);
     }
 
+    private void SendLoginSuccess(LoginSuccessJson json)
+    {
+        var packet = new LoginSuccessPacket(json);
+        WriteQueue.Add(packet);
+    }
+    
     private void HandleStatusResponse(StatusRequestPacket packet)
     {
         // Maybe I should check for nulls, or maybe the user should just set up configs correctly
@@ -177,7 +276,9 @@ public class NetClient : IDisposable
     private void WriteStream()
     {
         using NetworkStream ns = TcpClient.GetStream();
-        using (MinecraftStream ms = new MinecraftStream(ns)) {
+        using (MinecraftStream ms = new MinecraftStream(ns))
+        {
+            WriterStream = ms;
             while (!ShouldStop)
             {
                 var packet = WriteQueue.Take();

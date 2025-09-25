@@ -6,14 +6,17 @@ namespace blahaj.Network.Packets.Login;
 public class EncryptionRequestPacket : Packet
 {
     private string ServerId { get; }
-    private byte[] VerifyToken { get; }
+    public byte[] VerifyToken { get; }
     private bool ShouldAuthenticate { get; }
-    public EncryptionRequestPacket(string serverId, byte[] publicKey, byte[] verifyToken, bool shouldAuth) : base(0x01)
+
+    public EncryptionRequestPacket() : base(0x01) {}
+    
+    public EncryptionRequestPacket(string serverId, bool shouldAuth) : base(0x01)
     {
         ServerId = serverId;
         ShouldAuthenticate = shouldAuth;
         
-        var dat = new byte[128];
+        var dat = new byte[4];
         Rng.Random.NextBytes(dat);
         VerifyToken = dat;
     }
@@ -26,8 +29,8 @@ public class EncryptionRequestPacket : Packet
     public override void Write(MinecraftStream stream)
     { 
        stream.WriteString(ServerId);
-       stream.WritePrefixedArray(Encryption.Key.ExportSubjectPublicKeyInfo());
-       stream.WritePrefixedArray(VerifyToken);
+       stream.WritePrefixedByteArray(Encryption.ExportKeyAsDer());
+       stream.WritePrefixedByteArray(VerifyToken);
        stream.WriteBool(ShouldAuthenticate);
     }
 }

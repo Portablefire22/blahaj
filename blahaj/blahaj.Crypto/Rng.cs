@@ -1,6 +1,6 @@
 namespace blahaj.blahaj.Crypto;
 
-public class Rng
+public static class Rng
 {
     public static Random Random
     {
@@ -8,7 +8,7 @@ public class Rng
         private set;
     }
 
-    public Rng()
+    static Rng()
     {
         Random = new Random(DateTime.Now.Nanosecond);
     }

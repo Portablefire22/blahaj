@@ -1,5 +1,6 @@
 using blahaj.blahaj.Stream;
 using blahaj.Network.Packets.Handshake;
+using blahaj.Network.Packets.Login;
 using blahaj.Network.Packets.Status;
 
 namespace blahaj.Network.Packets;
@@ -52,6 +53,9 @@ public static class MinecraftPacketFactory
         
         Register<StatusRequestPacket>(ConnectionState.Status);
         Register<PingPacket>(ConnectionState.Status);
+
+        Register<LoginStartPacket>(ConnectionState.Login);
+        Register<EncryptionResponsePacket>(ConnectionState.Login);
     }
     
     private static void Register<Pt>(ConnectionState state) where Pt : Packet, new()

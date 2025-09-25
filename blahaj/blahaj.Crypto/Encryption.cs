@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Security.Cryptography;
 
 namespace blahaj.blahaj.Crypto;
@@ -9,5 +10,11 @@ public static class Encryption
     static Encryption()
     {
         Key = RSA.Create(1024);
+        Key.ExportParameters(true);
+    }
+
+    public static byte[] ExportKeyAsDer()
+    {
+        return Key.ExportSubjectPublicKeyInfo();
     }
 }

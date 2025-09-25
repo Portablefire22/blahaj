@@ -22,13 +22,12 @@ public interface MinecraftWriter
     public object WriteHashedSlot();
     public object WriteNbt();
     public object WritePosition();
-    public Guid WriteUuid();
+    public void WriteUuid(Guid uuid);
     public object WriteBitSet();
     public object WriteFixedBitSet();
     public T? WriteOptional<T>();
-    public T? WritePrefixedOptional<T>();
-    public void WriteArray<T>(T[] arr);
-    public void WritePrefixedArray<T>(T[] arr);
+    public void WritePrefixedOptionalString(string str);
+    public void WritePrefixedByteArray(byte[] arr);
     public T WriteEnum<T>();
     public T[] WriteEnumSet<T>();
     public void WriteByteArray(byte[] arr);

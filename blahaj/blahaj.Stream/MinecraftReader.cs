@@ -31,6 +31,7 @@ public interface MinecraftReader
    public T ReadEnum<T>();
    public T[] ReadEnumSet<T>();
    public byte[] ReadByteArray(int count);
+   public byte[] ReadPrefixedByteArray();
    public object ReadId();
    public object[] ReadIdSet();
    public object ReadSoundEvent();
