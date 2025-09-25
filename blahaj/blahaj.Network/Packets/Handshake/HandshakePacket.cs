@@ -21,6 +21,5 @@ public class HandshakePacket : Packet
 
     public override void Write(MinecraftStream stream)
     {
-        stream.WriteUnsignedByte((byte)Id);
     }
 }

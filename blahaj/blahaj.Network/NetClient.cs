@@ -184,6 +184,7 @@ public class NetClient : IDisposable
                 var stream = new MemoryStream();
                 using (var st = new MinecraftStream(stream))
                 {
+                    st.WriteVarInt(packet.Id);
                     packet.Write(st);
                 }
 

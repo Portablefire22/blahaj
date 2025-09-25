@@ -1,4 +1,5 @@
 using System.Net.Sockets;
+using System.Numerics;
 using System.Text;
 
 namespace blahaj.blahaj.Stream;
@@ -16,9 +17,9 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         Stream.Dispose();
     }
 
-    public bool WriteBool()
+    public void WriteBool(bool val)
     {
-        throw new NotImplementedException();
+        WriteUnsignedByte((byte)(val? 0x01: 0x00));
     }
 
     public void WriteByte(sbyte b)
@@ -151,9 +152,15 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public T[] WriteArray<T>()
+    public void WriteArray<T>(T[] arr)
     {
         throw new NotImplementedException();
+    }
+
+    public void WritePrefixedArray<T>(T[] arr)
+    {
+        WriteVarInt(arr.Length);
+        WriteArray<T>(arr);
     }
 
     public T WriteEnum<T>()

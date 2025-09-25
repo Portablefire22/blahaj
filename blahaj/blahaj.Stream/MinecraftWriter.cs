@@ -2,7 +2,7 @@ namespace blahaj.blahaj.Stream;
 
 public interface MinecraftWriter
 {
-    public bool WriteBool();
+    public void WriteBool(bool val);
     public void WriteByte(sbyte b);
     public void WriteUnsignedByte(byte b);
     public short WriteShort();
@@ -27,7 +27,8 @@ public interface MinecraftWriter
     public object WriteFixedBitSet();
     public T? WriteOptional<T>();
     public T? WritePrefixedOptional<T>();
-    public T[] WriteArray<T>();
+    public void WriteArray<T>(T[] arr);
+    public void WritePrefixedArray<T>(T[] arr);
     public T WriteEnum<T>();
     public T[] WriteEnumSet<T>();
     public void WriteByteArray(byte[] arr);

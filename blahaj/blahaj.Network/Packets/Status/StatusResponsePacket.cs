@@ -24,7 +24,6 @@ public class StatusResponsePacket : Packet
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
-        stream.WriteVarInt(Id);
         stream.WriteString(JsonSerializer.Serialize(Status, jsonOptions));
     }
 }

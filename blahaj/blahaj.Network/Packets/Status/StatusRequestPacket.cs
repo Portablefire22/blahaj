@@ -13,6 +13,5 @@ public class StatusRequestPacket : Packet
     
     public override void Write(MinecraftStream stream)
     {
-        stream.WriteUnsignedByte((byte)Id);
     }
 }

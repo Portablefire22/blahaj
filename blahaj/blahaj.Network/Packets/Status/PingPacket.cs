@@ -17,7 +17,6 @@ public class PingPacket : Packet
 
     public override void Write(MinecraftStream stream)
     {
-        stream.WriteVarInt(Id);
         stream.WriteLong(Timestamp);
     }
 }
