@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Net;
 using System.Net.Mime;
 using System.Net.Sockets;
+using blahaj.blahaj.Player;
 using blahaj.Network.Events;
 using blahaj.Network.Packets;
 using blahaj.Network.Packets.Handshake;
@@ -20,6 +21,11 @@ public class NetServer : IDisposable
     private TcpListener Listener;
     private ConcurrentDictionary<EndPoint, NetClient> Connections;
     public string Favicon { get; }
+
+    public MinecraftPlayer[] Players
+    {
+        get => Connections.Select(x => x.Value.Player).ToArray();
+    }
 
     public NetServer()
     {

@@ -31,11 +31,22 @@ public class NetClient : IDisposable
    
     public EndPoint? RemoteEndPoint { get; }
 
-    private MinecraftPlayer Player { get; set; }
+    public MinecraftPlayer Player { get; private set; }
     
     public bool UseCompression = false;
-    private ConnectionState ConnectionState { get; set; } = ConnectionState.Handshake;
+
+    private ConnectionState _conState = ConnectionState.Handshake;
     
+    private ConnectionState ConnectionState
+    {
+        get => _conState;
+        set
+        {
+            Logger.LogInformation($"Changing ConnectionState to {value}");
+            _conState = value;
+        }
+    }
+
     public EventHandler<ConnectionClosedArgs>? OnConnectionClosed { get; set; }
     public EventHandler<PacketReceivedArgs>? OnPacketReceived { get; set; }
 
@@ -92,7 +103,6 @@ public class NetClient : IDisposable
     
     private void ReadStream()
     {
-        var bf = new byte[4096];
         try
         {
             using NetworkStream ns = TcpClient.GetStream();
@@ -102,9 +112,7 @@ public class NetClient : IDisposable
                 while (true)
                 {
                     var length = ms.ReadVarInt();
-                    Logger.LogInformation($"Packet Size: {length}");
                     var packetId = ms.ReadVarInt();
-                    Logger.LogInformation($"Packet ID: {packetId}");
                     byte[] data;
                     if (UseCompression)
                     {
@@ -124,12 +132,11 @@ public class NetClient : IDisposable
 
                     packet.Read(new MinecraftStream(new MemoryStream(data)));
                     var args = new PacketReceivedArgs(packet);
+                    Logger.LogDebug($"Received: {packet.GetType()}");
                     OnPacketReceived?.Invoke(this, args);
                     Thread.Sleep(1);
                 }
             }
-
-            ;
         }
         catch (EndOfStreamException e) {}
         catch (Exception e)
@@ -158,6 +165,9 @@ public class NetClient : IDisposable
                 break;
             case ConnectionState.Configuration:
                 HandleConfiguration(args.Packet);
+                break;
+            case ConnectionState.Play:
+                HandlePlay(args.Packet);
                 break;
             default:
                 Logger.LogCritical($"Invalid State: {ConnectionState}");
@@ -207,7 +217,7 @@ public class NetClient : IDisposable
             case EncryptionResponsePacket encryptionResponsePacket:
                 HandleEncryptionResponse(encryptionResponsePacket);
                 break;
-            case LoginAcknowledgedPacket loginAcknowledgedPacket:
+            case LoginAcknowledgedPacket:
                 ConnectionState = ConnectionState.Configuration;
                 SendKnownPacks();
                 break;
@@ -219,7 +229,7 @@ public class NetClient : IDisposable
     private void HandleLoginStart(LoginStartPacket packet)
     {
         Player = new MinecraftPlayer(packet.Name, packet.Uuid);
-        Logger.LogInformation($"Connecting Player: {packet.Name} {packet.Uuid}");
+        Logger.LogInformation($"Connecting Player: {packet.Name} ({packet.Uuid})");
         SendEncryptionRequest();
     }
 
@@ -305,7 +315,7 @@ public class NetClient : IDisposable
 
     private void HandleClientInformation(ClientInformationPacket packet)
     {
-        Logger.LogInformation($"Client Information: {packet.Locale} {packet.ViewDistance}");   
+        Logger.LogDebug($"Client Information: {packet.Locale} {packet.ViewDistance}");   
     }
 
     private void HandleBrand(BrandPacket packet)
@@ -365,7 +375,12 @@ public class NetClient : IDisposable
     {
         // Maybe I should check for nulls, or maybe the user should just set up configs correctly
         var version = new StatusVersion(Server.Config["version"], short.Parse(Server.Config["protocol"]));
-        var players = new StatusPlayers(int.Parse(Server.Config["maxPlayers"]), 0, new StatusPlayer[0]);
+        var validPlayers = Server.Players.Where(x => x.IsValid()).ToArray();
+        // Get all players that want to show in the listing
+        var temp = validPlayers.Where(x => x.ClientInformation.AllowServerListings).Select(x => 
+                x.ToStatus()).ToArray();
+        var players = new StatusPlayers(int.Parse(Server.Config["maxPlayers"]), validPlayers.Length,
+            temp.Length > 0 ? temp : []);
         var desc = new StatusDescription(Server.Config["motd"]);
         
         var resp = new StatusResponse(version, players, desc, $"data:image/png;base64,{Server.Favicon}", 
