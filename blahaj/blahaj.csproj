@@ -27,9 +27,4 @@
       </None>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="blahaj.Network\Packets\Configuration\ToClient\" />
-      <Folder Include="blahaj.Network\Packets\Configuration\ToServer\" />
-    </ItemGroup>
-
 </Project>

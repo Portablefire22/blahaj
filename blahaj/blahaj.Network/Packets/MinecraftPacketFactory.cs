@@ -1,5 +1,6 @@
 using blahaj.blahaj.Stream;
 using blahaj.Network.Packets.Configuration;
+using blahaj.Network.Packets.Configuration.ToServer;
 using blahaj.Network.Packets.Handshake;
 using blahaj.Network.Packets.Login;
 using blahaj.Network.Packets.Status;
@@ -65,6 +66,9 @@ public static class MinecraftPacketFactory
         Register<LoginAcknowledgedPacket>(ConnectionState.Login);
 
         Register<BrandPacket>(ConnectionState.Configuration);
+        Register<ClientInformationPacket>(ConnectionState.Configuration);
+        Register<KnownPacksPacket>(ConnectionState.Configuration);
+        Register<AcknowledgeFinishConfiguration>(ConnectionState.Configuration);
     }
     
     private static void Register<Pt>(ConnectionState state) where Pt : Packet, new()

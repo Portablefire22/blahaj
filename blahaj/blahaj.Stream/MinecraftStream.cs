@@ -261,7 +261,7 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 
     public bool ReadBool()
     {
-        throw new NotImplementedException();
+        return ReadUnsignedByte() == 1;
     }
 
     public sbyte ReadByte()

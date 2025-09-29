@@ -1,18 +1,18 @@
 using System.Collections.Concurrent;
-using System.Drawing;
 using System.Net;
-using System.Net.Http.Json;
-using System.Net.Mime;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using blahaj.blahaj.Crypto;
 using blahaj.blahaj.Player;
+using blahaj.blahaj.Registry;
+using blahaj.blahaj.Registry.Packs;
 using blahaj.blahaj.Stream;
 using blahaj.Network.Packets;
 using blahaj.Network.Events;
 using blahaj.Network.Packets.Configuration;
+using blahaj.Network.Packets.Configuration.ToClient;
+using blahaj.Network.Packets.Configuration.ToServer;
 using blahaj.Network.Packets.Handshake;
 using blahaj.Network.Packets.Login;
 using blahaj.Network.Packets.Login.Json;
@@ -51,6 +51,8 @@ public class NetClient : IDisposable
     private MinecraftStream ReaderStream { get; set; }
     private MinecraftStream WriterStream { get; set; }
 
+    private Pack[] KnownPacks { get; set; }
+    
     public NetClient(TcpClient tcpClient, NetServer server)
     {
         using ILoggerFactory factory = LoggerFactory.Create(build => build.AddConsole());
@@ -112,18 +114,27 @@ public class NetClient : IDisposable
                     {
                         data = ms.ReadByteArray(length - 1);
                     }
+
                     var packet = MinecraftPacketFactory.GetPacket(ConnectionState, packetId);
                     if (packet == null)
                     {
                         Logger.LogCritical($"Unknown Packet ID: {packetId}, State: {ConnectionState}");
                         continue;
                     }
+
                     packet.Read(new MinecraftStream(new MemoryStream(data)));
                     var args = new PacketReceivedArgs(packet);
                     OnPacketReceived?.Invoke(this, args);
-                    Thread.Sleep(100);
+                    Thread.Sleep(1);
                 }
-            };
+            }
+
+            ;
+        }
+        catch (EndOfStreamException e) {}
+        catch (Exception e)
+        {
+            Logger.LogCritical($"Client disconnected due to exception: {e}");
         }
         finally
         {
@@ -198,12 +209,14 @@ public class NetClient : IDisposable
                 break;
             case LoginAcknowledgedPacket loginAcknowledgedPacket:
                 ConnectionState = ConnectionState.Configuration;
+                SendKnownPacks();
                 break;
             default:
                 Logger.LogCritical($"Invalid Login packet: {packet.Id}");
                 break;
         }
-    }private void HandleLoginStart(LoginStartPacket packet)
+    }
+    private void HandleLoginStart(LoginStartPacket packet)
     {
         Player = new MinecraftPlayer(packet.Name, packet.Uuid);
         Logger.LogInformation($"Connecting Player: {packet.Name} {packet.Uuid}");
@@ -216,6 +229,7 @@ public class NetClient : IDisposable
         RandomToken = packet.VerifyToken;
         WriteQueue.Add(packet);
     }
+
 
     private void HandleEncryptionResponse(EncryptionResponsePacket packet)
     {
@@ -274,17 +288,77 @@ public class NetClient : IDisposable
             case BrandPacket brandPacket:
                 HandleBrand(brandPacket);
                 break;
+            case ClientInformationPacket clientInformationPacket:
+                HandleClientInformation(clientInformationPacket);
+                break;
+            case KnownPacksPacket knownPacksPacket:
+                HandleKnownPacks(knownPacksPacket);
+                break;
+            case AcknowledgeFinishConfiguration:
+                HandleFinishConfiguration();
+                break;
             default:
                 Logger.LogCritical($"Invalid Configuration packet: {packet.Id}");
                 break;
         }
     }
 
+    private void HandleClientInformation(ClientInformationPacket packet)
+    {
+        Logger.LogInformation($"Client Information: {packet.Locale} {packet.ViewDistance}");   
+    }
 
     private void HandleBrand(BrandPacket packet)
     {
         var brand = new BrandPacket("Blahaj");
         WriteQueue.Add(brand);
+    }
+
+    private void SendKnownPacks()
+    {
+        var packs = new Pack[] { new MinecraftCorePack(Server.Config["version"]) };
+        WriteQueue.Add(new KnownPacksPacket(packs));
+    }
+
+    private void HandleKnownPacks(KnownPacksPacket packet)
+    {
+        KnownPacks = packet.KnownPacks;
+        SendRegistryData();
+    }
+
+    private void SendRegistryData()
+    {
+        foreach (var pack in PackTracker.Known.Where(x => !KnownPacks.Contains(x)))
+        {
+            Logger.LogInformation($"Client needs {pack.Id}");
+        }
+        SendFinishConfig();
+    }
+
+    private void SendFinishConfig()
+    {
+       WriteQueue.Add(new FinishConfigurationPacket()); 
+    }
+
+    private void HandleFinishConfiguration()
+    {
+        ConnectionState = ConnectionState.Play;
+        SendLoginPlay();
+    }
+
+    private void HandlePlay(Packet packet)
+    {
+        switch (packet)
+        {
+            default:
+                Logger.LogCritical($"Invalid Play packet: {packet.Id}");
+                break;
+        }
+    }
+
+    private void SendLoginPlay()
+    {
+        
     }
     
     private void HandleStatusResponse(StatusRequestPacket packet)
