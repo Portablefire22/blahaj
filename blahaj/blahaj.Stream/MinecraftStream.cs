@@ -19,15 +19,15 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         Stream = ns;
     }
 
-    public void InitEncryption(byte[] key, bool isWriting)
+    public void InitEncryption(byte[] key)
     {
-        var EncryptCipher = new BufferedBlockCipher(new CfbBlockCipher(new AesEngine(), 8));
-        EncryptCipher
+        var encryptCipher = new BufferedBlockCipher(new CfbBlockCipher(new AesEngine(), 8));
+        encryptCipher
             .Init(true, new ParametersWithIV(new KeyParameter(key), key, 0 ,16));
-        var DecryptCipher = new BufferedBlockCipher(new CfbBlockCipher(new AesEngine(), 8));
-        DecryptCipher
+        var decryptCipher = new BufferedBlockCipher(new CfbBlockCipher(new AesEngine(), 8));
+        decryptCipher
             .Init(false, new ParametersWithIV(new KeyParameter(key), key, 0, 16));
-        Stream = new CipherStream(Stream, DecryptCipher, EncryptCipher);
+        Stream = new CipherStream(Stream, decryptCipher, encryptCipher);
     }
     
     public void Dispose()
@@ -60,9 +60,9 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         throw new NotImplementedException();
     }
 
-    public int WriteInt()
+    public void WriteInt(int val)
     {
-        throw new NotImplementedException();
+        Stream.Write(BitConverter.GetBytes(val));
     }
 
     public void WriteLong(long val)

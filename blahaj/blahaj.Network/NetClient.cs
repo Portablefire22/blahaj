@@ -8,6 +8,7 @@ using blahaj.blahaj.Player;
 using blahaj.blahaj.Registry;
 using blahaj.blahaj.Registry.Packs;
 using blahaj.blahaj.Stream;
+using blahaj.blahaj.World;
 using blahaj.Network.Packets;
 using blahaj.Network.Events;
 using blahaj.Network.Packets.Configuration;
@@ -16,6 +17,7 @@ using blahaj.Network.Packets.Configuration.ToServer;
 using blahaj.Network.Packets.Handshake;
 using blahaj.Network.Packets.Login;
 using blahaj.Network.Packets.Login.Json;
+using blahaj.Network.Packets.Play.ToClient;
 using blahaj.Network.Packets.Status;
 using blahaj.Network.Packets.Status.Json;
 using Microsoft.Extensions.Logging;
@@ -275,8 +277,8 @@ public class NetClient : IDisposable
             }
             Logger.LogInformation("Authentication Successful");
         }
-        ReaderStream.InitEncryption(packet.SharedSecret, false);
-        WriterStream.InitEncryption(packet.SharedSecret, true);
+        ReaderStream.InitEncryption(packet.SharedSecret);
+        WriterStream.InitEncryption(packet.SharedSecret);
         SendLoginSuccess(json);
     }
 
@@ -368,13 +370,18 @@ public class NetClient : IDisposable
 
     private void SendLoginPlay()
     {
-        
+        // Ewwwwwwwwwwwwww
+        var set = WorldSettings.FromConfig(Server.Config);
+        var packet = new LoginPacket(set, 1, "overworld", false, null, 
+            null, 0, 0);
+        WriteQueue.Add(packet);
     }
     
     private void HandleStatusResponse(StatusRequestPacket packet)
     {
         // Maybe I should check for nulls, or maybe the user should just set up configs correctly
         var version = new StatusVersion(Server.Config["version"], short.Parse(Server.Config["protocol"]));
+        // Get all connections that contain a valid player
         var validPlayers = Server.Players.Where(x => x.IsValid()).ToArray();
         // Get all players that want to show in the listing
         var temp = validPlayers.Where(x => x.ClientInformation.AllowServerListings).Select(x => 
