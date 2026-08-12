@@ -113,16 +113,7 @@ public class DamageType : IRegistryEntry
       {
          Network = true
       });
-      
-      /*
-      msWriter.WriteStringTag(MessageId, "message_id");
-      msWriter.WriteFloatTag(Exhaustion, "exhaustion");
-      msWriter.WriteStringTag(Scaling, "scaling");
-      if (Effects != null) msWriter.WriteStringTag(Effects, "effects");
-      if (DeathMessageType != null) msWriter.WriteStringTag(DeathMessageType, "death_message_type");
-      */
       writer.WriteByteArray([.. buffer.WrittenSpan]);
-      
    }
 
    public IRegistryEntry Read(MinecraftStream writer)

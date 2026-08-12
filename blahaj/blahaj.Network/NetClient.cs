@@ -345,7 +345,10 @@ public class NetClient : IDisposable
     private void SendRegistryData()
     {
         WriteQueue.Add(new RegistryDataPacket(RegistryController.DamageTypeRegistry));
-        
+        foreach (var variant in RegistryController.VariantsRegistry)
+        {
+            WriteQueue.Add(new RegistryDataPacket(variant));
+        }
         SendFinishConfig();
     }
 
