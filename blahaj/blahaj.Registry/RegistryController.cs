@@ -1,6 +1,7 @@
 using System.Text.Json;
 using blahaj.blahaj.Registry.Data.DamageType;
 using blahaj.blahaj.Registry.Data.SoundVariants;
+using blahaj.blahaj.Registry.Data.SoundVariants.Cow;
 using blahaj.Network;
 using Microsoft.Extensions.Logging;
 
@@ -67,6 +68,10 @@ public static class RegistryController
     {
         Logger.LogDebug("Initialising variants...");
         InitCatVariant();
+        InitChickenVariant();
+        InitCowVariant(); 
+        InitPigVariants(); 
+        InitWolfVariants();
         Logger.LogDebug("Finished Initialising variants");
     }
 
@@ -93,6 +98,106 @@ public static class RegistryController
         var reg = new RegistryData("minecraft:cat_sound_variant", [..tmp]);
         VariantsRegistry.Add(reg);
         Logger.LogDebug("Finished initialising cat variants");
+    }
+    
+    
+    private static void InitChickenVariant()
+    {
+        Logger.LogDebug("Initialising chicken variants...");
+        var files = Directory.GetFiles(Path.Combine(RegistryPath, "chicken_sound_variant/"), "*.json");
+        var tmp = new List<ChickenSoundVariant>();
+        foreach (var file in files)
+        {
+            var json = File.ReadAllText(file);
+            var variant = JsonSerializer.Deserialize<ChickenSoundVariant>(json, _jsonSerializerOptions);
+            if (variant == null) continue;
+            var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+            variant.Identifier = $"minecraft:{name}";
+
+            variant.AdultSounds.Type = "adult_sounds";
+            variant.BabySounds.Type = "baby_sounds";
+            
+            tmp.Add(variant);
+            Logger.LogDebug($"Registered chicken sound variant {variant.Identifier}");
+        }
+        
+        var reg = new RegistryData("minecraft:chicken_sound_variant", [..tmp]);
+        VariantsRegistry.Add(reg);
+        Logger.LogDebug("Finished initialising chicken variants");
+    }
+
+    public static void InitCowVariant()
+    {
+        Logger.LogDebug("Initialising cow variants...");
+        var files = Directory.GetFiles(Path.Combine(RegistryPath, "cow_sound_variant/"), "*.json");
+        var tmp = new List<CowSoundVariant>();
+        foreach (var file in files)
+        {
+            var json = File.ReadAllText(file);
+            var entry = JsonSerializer.Deserialize<CowSoundEntry>(json, _jsonSerializerOptions);
+            if (entry == null) continue;
+
+            var variant = new CowSoundVariant() {Sounds = entry};
+            
+            var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+            variant.Identifier = $"minecraft:{name}";
+
+            tmp.Add(variant);
+            Logger.LogDebug($"Registered cow sound variant {variant.Identifier}");
+        }
+        
+        var reg = new RegistryData("minecraft:cow_sound_variant", [..tmp]);
+        VariantsRegistry.Add(reg);
+        Logger.LogDebug("Finished initialising cow variants");
+    }
+
+    private static void InitPigVariants()
+    {
+        Logger.LogDebug("Initialising pig variants...");
+        var files = Directory.GetFiles(Path.Combine(RegistryPath, "pig_sound_variant/"), "*.json");
+        var tmp = new List<PigSoundVariant>();
+        foreach (var file in files)
+        {
+            var json = File.ReadAllText(file);
+            var variant = JsonSerializer.Deserialize<PigSoundVariant>(json, _jsonSerializerOptions);
+            if (variant == null) continue;
+            
+            var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+            variant.Identifier = $"minecraft:{name}";
+            variant.AdultSounds.Type = "adult_sounds";
+            variant.BabySounds.Type = "baby_sounds";
+
+            tmp.Add(variant);
+            Logger.LogDebug($"Registered pig sound variant {variant.Identifier}");
+        }
+        
+        var reg = new RegistryData("minecraft:pig_sound_variant", [..tmp]);
+        VariantsRegistry.Add(reg);
+        Logger.LogDebug("Finished initialising pig variants");
+    }
+    private static void InitWolfVariants()
+    {
+        Logger.LogDebug("Initialising wolf variants...");
+        var files = Directory.GetFiles(Path.Combine(RegistryPath, "wolf_sound_variant/"), "*.json");
+        var tmp = new List<WolfSoundVariant>();
+        foreach (var file in files)
+        {
+            var json = File.ReadAllText(file);
+            var variant = JsonSerializer.Deserialize<WolfSoundVariant>(json, _jsonSerializerOptions);
+            if (variant == null) continue;
+            
+            var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+            variant.Identifier = $"minecraft:{name}";
+            variant.AdultSounds.Type = "adult_sounds";
+            variant.BabySounds.Type = "baby_sounds";
+
+            tmp.Add(variant);
+            Logger.LogDebug($"Registered wolf sound variant {variant.Identifier}");
+        }
+        
+        var reg = new RegistryData("minecraft:wolf_sound_variant", [..tmp]);
+        VariantsRegistry.Add(reg);
+        Logger.LogDebug("Finished initialising wolf variants");
     }
     
 }
