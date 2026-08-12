@@ -7,13 +7,15 @@ public class LoginSuccessPacket : Packet
 {
     public Guid Uuid { get; private set; }
     public string Username { get; private set; }
+    public Guid SessionId { get; private set; }
     public LoginSuccessProperties[] Properties { get; private set; }
     
-    public LoginSuccessPacket(LoginSuccessJson json) : base(0x02)
+    public LoginSuccessPacket(LoginSuccessJson json, Guid sessionId) : base(0x02)
     {
         Uuid = Guid.Parse(json.Id);
         Username = json.Name;
         Properties = json.Properties;
+        SessionId = sessionId;
     }
 
     public override void Read(MinecraftStream stream)
@@ -37,6 +39,7 @@ public class LoginSuccessPacket : Packet
         var dat = ms.ToArray();
         stream.WriteVarInt(dat.Length);
         stream.WriteByteArray(dat);
+        stream.WriteUuid(SessionId);
     }
 }
 

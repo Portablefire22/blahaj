@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Mime;
 using System.Net.Sockets;
 using blahaj.blahaj.Player;
+using blahaj.blahaj.Registry;
 using blahaj.Network.Events;
 using blahaj.Network.Packets;
 using blahaj.Network.Packets.Handshake;
@@ -55,6 +56,8 @@ public class NetServer : IDisposable
     }
     public void Run()
     {
+        RegistryController.Initialise();
+        
         var ipEndPoint = new IPEndPoint(IPAddress.Parse(Config["ip"]), int.Parse(Config["port"]));
         Listener = new TcpListener(ipEndPoint);
         Listener.Start();

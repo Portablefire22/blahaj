@@ -7,6 +7,7 @@ public class MinecraftPlayer
 {
     public string Name { get; set; } = "";
     public Guid? Uuid { get; set; }
+    public Guid SessionId { get; private set; } = Guid.NewGuid();
     public ClientInformationPacket ClientInformation { get; set; }
 
     public MinecraftPlayer() { }

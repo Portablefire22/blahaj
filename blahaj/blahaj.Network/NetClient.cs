@@ -68,7 +68,11 @@ public class NetClient : IDisposable
     
     public NetClient(TcpClient tcpClient, NetServer server)
     {
-        using ILoggerFactory factory = LoggerFactory.Create(build => build.AddConsole());
+        using ILoggerFactory factory = LoggerFactory.Create(build => build
+            #if DEBUG
+            .SetMinimumLevel(LogLevel.Trace)
+            #endif
+            .AddConsole());
         Logger = factory.CreateLogger<NetClient>();
 
         Server = server;
@@ -289,7 +293,7 @@ public class NetClient : IDisposable
 
     private void SendLoginSuccess(LoginSuccessJson json)
     {
-        var packet = new LoginSuccessPacket(json);
+        var packet = new LoginSuccessPacket(json, Player.SessionId);
         WriteQueue.Add(packet);
     }
 
@@ -340,10 +344,8 @@ public class NetClient : IDisposable
 
     private void SendRegistryData()
     {
-        foreach (var pack in PackTracker.Known.Where(x => !KnownPacks.Contains(x)))
-        {
-            Logger.LogInformation($"Client needs {pack.Id}");
-        }
+        WriteQueue.Add(new RegistryDataPacket(RegistryController.DamageTypeRegistry));
+        
         SendFinishConfig();
     }
 
