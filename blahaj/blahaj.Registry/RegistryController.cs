@@ -1,6 +1,7 @@
 using System.Text.Json;
 using blahaj.blahaj.Registry.Data;
 using blahaj.blahaj.Registry.Data.DamageType;
+using blahaj.blahaj.Registry.Data.JukeboxSong;
 using blahaj.blahaj.Registry.Data.SoundVariants;
 using blahaj.blahaj.Registry.Data.Variants;
 using blahaj.Network;
@@ -45,7 +46,7 @@ public static class RegistryController
         InitDamageTypes(); 
         InitVariants();
         InitTrimMaterials();
-        
+        InitJukeboxSongs();
         Logger.LogInformation("Finished Initialising registry data");
         Logger.LogInformation("Tagging registry data...");
         InitTagged();
@@ -236,4 +237,31 @@ public static class RegistryController
         }
     }
     
+    private static void InitJukeboxSongs()
+    {
+        var directories = Directory.GetDirectories(RegistryPath, "jukebox_song");   
+        foreach (var directory in directories)
+        {
+            var directoryName = directory.Substring(directory.LastIndexOf('/') + 1);
+            Logger.LogDebug($"Registering jukebox songs...");
+            
+            var files = Directory.GetFiles(directory, "*.json");
+            var tmp = new List<JukeboxSong>();
+            foreach (var file in files)
+            {
+                var json = File.ReadAllText(file);
+
+                var variant =  JsonSerializer.Deserialize<JukeboxSong>(json, _jsonSerializerOptions);
+                if (variant == null) continue;
+
+                
+                var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+                variant.Identifier = $"minecraft:{name}";
+
+                tmp.Add(variant);
+                Logger.LogDebug($"Registered {variant.Identifier}");
+            }
+            VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
+        }
+    }
 }
