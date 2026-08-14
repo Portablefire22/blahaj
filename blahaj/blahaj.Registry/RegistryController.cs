@@ -1,6 +1,7 @@
 using System.Text.Json;
 using blahaj.blahaj.Registry.Data;
 using blahaj.blahaj.Registry.Data.DamageType;
+using blahaj.blahaj.Registry.Data.Instruments;
 using blahaj.blahaj.Registry.Data.JukeboxSong;
 using blahaj.blahaj.Registry.Data.SoundVariants;
 using blahaj.blahaj.Registry.Data.Variants;
@@ -47,6 +48,8 @@ public static class RegistryController
         InitVariants();
         InitTrimMaterials();
         InitJukeboxSongs();
+        InitBannerPatterns();
+        InitInstruments();
         Logger.LogInformation("Finished Initialising registry data");
         Logger.LogInformation("Tagging registry data...");
         InitTagged();
@@ -63,6 +66,22 @@ public static class RegistryController
                 new UpdateTag("minecraft:bypasses_shield", []),
             });
         TaggedRegistries.Add(damage);
+
+        var banner = new TaggedRegistry("minecraft:banner_pattern",
+            new UpdateTag[]
+            {
+                new UpdateTag("minecraft:pattern_item/bordure_indented", []),
+                new UpdateTag("minecraft:pattern_item/creeper", []),
+                new UpdateTag("minecraft:pattern_item/field_masoned", []),
+                new UpdateTag("minecraft:pattern_item/flow", []),
+                new UpdateTag("minecraft:pattern_item/flower", []),
+                new UpdateTag("minecraft:pattern_item/globe", []),
+                new UpdateTag("minecraft:pattern_item/guster", []),
+                new UpdateTag("minecraft:pattern_item/mojang", []),
+                new UpdateTag("minecraft:pattern_item/piglin", []),
+                new UpdateTag("minecraft:pattern_item/skull", []),
+            });
+        TaggedRegistries.Add(banner);
     }
     
     
@@ -263,5 +282,62 @@ public static class RegistryController
             }
             VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
         }
+    }
+    
+    
+    private static void InitBannerPatterns()
+    {
+        var directories = Directory.GetDirectories(RegistryPath, "banner_pattern");   
+        foreach (var directory in directories)
+        {
+            var directoryName = directory.Substring(directory.LastIndexOf('/') + 1);
+            Logger.LogDebug($"Registering banner patterns...");
+            
+            var files = Directory.GetFiles(directory, "*.json");
+            var tmp = new List<BannerPattern>();
+            foreach (var file in files)
+            {
+                var json = File.ReadAllText(file);
+
+                var variant =  JsonSerializer.Deserialize<BannerPattern>(json, _jsonSerializerOptions);
+                if (variant == null) continue;
+
+                
+                var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+                variant.Identifier = $"minecraft:{name}";
+
+                tmp.Add(variant);
+                Logger.LogDebug($"Registered {variant.Identifier}");
+            }
+            VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
+        }
+    }
+
+    private static void InitInstruments()
+    {      var directories = Directory.GetDirectories(RegistryPath, "instrument");   
+        foreach (var directory in directories)
+        {
+            var directoryName = directory.Substring(directory.LastIndexOf('/') + 1);
+            Logger.LogDebug($"Registering instruments...");
+            
+            var files = Directory.GetFiles(directory, "*.json");
+            var tmp = new List<Instrument>();
+            foreach (var file in files)
+            {
+                var json = File.ReadAllText(file);
+
+                var variant =  JsonSerializer.Deserialize<Instrument>(json, _jsonSerializerOptions);
+                if (variant == null) continue;
+
+                
+                var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+                variant.Identifier = $"minecraft:{name}";
+
+                tmp.Add(variant);
+                Logger.LogDebug($"Registered {variant.Identifier}");
+            }
+            VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
+        }
+        
     }
 }
