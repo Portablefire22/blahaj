@@ -16,11 +16,11 @@ public class LoginPacket : Packet
     public Vector3? DeathLocation { get; private set; }
     public byte GameMode { get; private set; }
     public byte PreviousGameMode { get; private set; }
-    public LoginPacket() :  base(0x2B) {}
+    public LoginPacket() :  base(0x31) {}
 
     public LoginPacket(WorldSettings settings, int entityId, string dimensionName, 
         bool hasDeathLocation, string? deathDimensionName, Vector3? deathLocation, 
-        byte gameMode, byte previousGameMode) : base(0x2B)
+        byte gameMode, byte previousGameMode) : this()
     {
         Settings = settings;
         EntityId = entityId;
@@ -56,7 +56,7 @@ public class LoginPacket : Packet
         stream.WriteString(DimensionName);
         stream.WriteLong(Settings.HashedSeed);
         stream.WriteUnsignedByte(Settings.DefaultGameMode);
-        stream.WriteUnsignedByte(Settings.DefaultGameMode);
+        stream.WriteByte((sbyte)Settings.DefaultGameMode);
         stream.WriteBool(Settings.IsDebug);
         stream.WriteBool(Settings.IsFlat);
         stream.WriteBool(HasDeathLocation);
@@ -66,6 +66,7 @@ public class LoginPacket : Packet
         }
         stream.WriteVarInt(Settings.PortalCooldown);
         stream.WriteVarInt(Settings.SeaLevel);
+        stream.WriteBool(Settings.OnlineMode);
         stream.WriteBool(Settings.EnforcesSecureChat);
     }
 }

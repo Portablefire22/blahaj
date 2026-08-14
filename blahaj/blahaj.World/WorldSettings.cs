@@ -26,10 +26,12 @@ public class WorldSettings
          bool.Parse(root["isFlat"]),
          int.Parse(root["portalCooldown"]),
          int.Parse(root["seaLevel"]),
+         bool.Parse(config["onlineMode"]),
          bool.Parse(config["enforcesSecureChat"])
          );
    }
-   public WorldSettings(bool isHardcore, string[] dimensionNames, int maxPlayers, int viewDistance, int simulationDistance, bool reducedDebugInfo, bool enableRespawnScreen, bool doLimitedCrafting, byte defaultGameMode, int dimensionType, long seed, bool isDebug, bool isFlat, int portalCooldown, int seaLevel, bool enforcesSecureChat)
+   public WorldSettings(bool isHardcore, string[] dimensionNames, int maxPlayers, int viewDistance, int simulationDistance, bool reducedDebugInfo, bool enableRespawnScreen, bool doLimitedCrafting, byte defaultGameMode, int dimensionType, long seed, bool isDebug, bool isFlat, int portalCooldown, int seaLevel, 
+      bool onlineMode, bool enforcesSecureChat)
    {
       IsHardcore = isHardcore;
       DimensionNames = dimensionNames;
@@ -46,6 +48,7 @@ public class WorldSettings
       IsFlat = isFlat;
       PortalCooldown = portalCooldown;
       SeaLevel = seaLevel;
+      OnlineMode = onlineMode;
       EnforcesSecureChat = enforcesSecureChat;
    }
 
@@ -79,5 +82,6 @@ public class WorldSettings
    // the portal they are currently inside of.
    public int PortalCooldown { get; private set; } = 150;
    public int SeaLevel { get; private set; } = 70;
+   public bool OnlineMode { get; private set; } = false;
    public bool EnforcesSecureChat { get; private set; } = false;
 }

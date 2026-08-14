@@ -15,20 +15,11 @@ public class TaggedRegistry
 
     public void Write(MinecraftStream stream)
     {
-        using var ms = new MemoryStream();
-        using var msWriter = new MinecraftStream(ms);
-        msWriter.WriteString(Identifier);
-        msWriter.WriteVarInt(Tags.Length);
+        stream.WriteString(Identifier);
+        stream.WriteVarInt(Tags.Length);
         foreach (var tag in Tags)
         {
-            tag.Write(msWriter);
+            tag.Write(stream);
         }
-        var str = "";
-        foreach (var b in ms.ToArray())
-        {
-            str += $"{b} ";
-        }
-        Console.WriteLine(str);
-        stream.WriteByteArray(ms.ToArray());
     }
 }

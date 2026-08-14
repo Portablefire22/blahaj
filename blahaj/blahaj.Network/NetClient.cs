@@ -419,6 +419,15 @@ public class NetClient : IDisposable
                     packet.Write(st);
                 }
 
+                #if DEBUG
+                var str = "";
+                foreach (var by in stream.GetBuffer())
+                {
+                    str += $"{by} ";
+                }
+                Logger.LogDebug(str);
+                #endif
+                
                 var arr = stream.ToArray();
                 ms.WriteVarInt(arr.Length);
                 ms.WriteByteArray(arr);

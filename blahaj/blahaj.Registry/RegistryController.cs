@@ -1,6 +1,7 @@
 using System.Text.Json;
 using blahaj.blahaj.Registry.Data;
 using blahaj.blahaj.Registry.Data.DamageType;
+using blahaj.blahaj.Registry.Data.Dimensions;
 using blahaj.blahaj.Registry.Data.Instruments;
 using blahaj.blahaj.Registry.Data.JukeboxSong;
 using blahaj.blahaj.Registry.Data.SoundVariants;
@@ -50,6 +51,9 @@ public static class RegistryController
         InitJukeboxSongs();
         InitBannerPatterns();
         InitInstruments();
+        InitDimensions();
+        InitWorldClocks();
+        InitBiomes();
         Logger.LogInformation("Finished Initialising registry data");
         Logger.LogInformation("Tagging registry data...");
         InitTagged();
@@ -82,6 +86,14 @@ public static class RegistryController
                 new UpdateTag("minecraft:pattern_item/skull", []),
             });
         TaggedRegistries.Add(banner);
+        var timeline = new TaggedRegistry("minecraft:timeline", 
+            new UpdateTag[]
+            {
+                new UpdateTag("minecraft:in_end", []),
+                new UpdateTag("minecraft:in_nether", []),
+                new UpdateTag("minecraft:in_overworld", []),
+            });
+        TaggedRegistries.Add(timeline);
     }
     
     
@@ -338,6 +350,71 @@ public static class RegistryController
             }
             VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
         }
+    }
+
+    private static void InitDimensions()
+    {
+        var directories = Directory.GetDirectories(RegistryPath, "dimension_type");   
+        foreach (var directory in directories)
+        {
+            var directoryName = directory.Substring(directory.LastIndexOf('/') + 1);
+            Logger.LogDebug($"Registering dimensions...");
+            
+            var files = Directory.GetFiles(directory, "*.json");
+            var tmp = new List<Dimension>();
+            foreach (var file in files)
+            {
+                var json = File.ReadAllText(file);
+
+                var variant =  JsonSerializer.Deserialize<Dimension>(json, _jsonSerializerOptions);
+                if (variant == null) continue;
+
+                
+                var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+                variant.Identifier = $"minecraft:{name}";
+
+                tmp.Add(variant);
+                Logger.LogDebug($"Registered {variant.Identifier}");
+            }
+            VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
+        }
+    }
+    
+    private static void InitWorldClocks()
+    {
+        var directories = Directory.GetDirectories(RegistryPath, "world_clock");   
+        foreach (var directory in directories)
+        {
+            var directoryName = directory.Substring(directory.LastIndexOf('/') + 1);
+            Logger.LogDebug($"Registering world clocks...");
+            
+            var files = Directory.GetFiles(directory, "*.json");
+            var tmp = new List<WorldClock>();
+            foreach (var file in files)
+            {
+                var json = File.ReadAllText(file);
+
+                var variant =  JsonSerializer.Deserialize<WorldClock>(json, _jsonSerializerOptions);
+                if (variant == null) continue;
+
+                
+                var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+                variant.Identifier = $"minecraft:{name}";
+
+                tmp.Add(variant);
+                Logger.LogDebug($"Registered {variant.Identifier}");
+            }
+            VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
+        }
+    }
+
+    private static void InitBiomes()
+    {
+        var plains = new Biome()
+        {
+            Identifier = "minecraft:plains"
+        };
         
+        VariantsRegistry.Add(new RegistryData($"minecraft:worldgen/biome", [plains]));
     }
 }

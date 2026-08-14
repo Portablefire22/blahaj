@@ -3,6 +3,7 @@ using blahaj.Network.Packets.Configuration;
 using blahaj.Network.Packets.Configuration.ToServer;
 using blahaj.Network.Packets.Handshake;
 using blahaj.Network.Packets.Login;
+using blahaj.Network.Packets.Play.ToServer;
 using blahaj.Network.Packets.Status;
 
 namespace blahaj.Network.Packets;
@@ -69,6 +70,8 @@ public static class MinecraftPacketFactory
         Register<ClientInformationPacket>(ConnectionState.Configuration);
         Register<KnownPacksPacket>(ConnectionState.Configuration);
         Register<AcknowledgeFinishConfiguration>(ConnectionState.Configuration);
+        
+        Register<ClientTickEndPacket>(ConnectionState.Play);
     }
     
     private static void Register<Pt>(ConnectionState state) where Pt : Packet, new()
@@ -85,6 +88,9 @@ public static class MinecraftPacketFactory
                 break;
             case ConnectionState.Configuration:
                 Register<Pt>(ConfigurationPacketFactory);
+                break;
+            case ConnectionState.Play:
+                Register<Pt>(PlayPacketFactory);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(state), state, null);
