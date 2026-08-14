@@ -349,6 +349,9 @@ public class NetClient : IDisposable
         {
             WriteQueue.Add(new RegistryDataPacket(variant));
         }
+
+        WriteQueue.Add(new UpdateTagsPacket([.. RegistryController.TaggedRegistries]));
+        
         SendFinishConfig();
     }
 

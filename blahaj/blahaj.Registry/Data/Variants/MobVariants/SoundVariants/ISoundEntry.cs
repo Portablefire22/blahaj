@@ -2,7 +2,6 @@ using Raspite.Tags;
 
 namespace blahaj.blahaj.Registry.Data.SoundVariants;
 
-public interface ISoundEntry
+public interface ISoundEntry : INbt
 {
-    public CompoundTag AsTag();
 }

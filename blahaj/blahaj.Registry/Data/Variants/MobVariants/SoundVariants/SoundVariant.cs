@@ -6,7 +6,7 @@ using Raspite.Tags.Building;
 
 namespace blahaj.blahaj.Registry.Data.SoundVariants;
 
-public class SoundVariant : IRegistryEntry
+public class SoundVariant : IRegistryEntry, INbt
 {
     public string? Identifier { get; set; }
    
@@ -21,6 +21,23 @@ public class SoundVariant : IRegistryEntry
         var buffer = new ArrayBufferWriter<byte>();
         writer.WriteBool(true);
 
+        var compoundTag = AsTag();
+        
+        TagSerializer.Serialize(buffer, compoundTag, new TagSerializerOptions()
+        {
+            Network = true
+        });
+    
+        writer.WriteByteArray([.. buffer.WrittenSpan]);
+    }
+
+    public IRegistryEntry Read(MinecraftStream writer)
+    {
+        throw new NotImplementedException();
+    }
+
+    public CompoundTag AsTag()
+    {
         CompoundTag compoundTag;
         if (AdultSounds is not null && BabySounds is not null)
         {
@@ -34,17 +51,7 @@ public class SoundVariant : IRegistryEntry
         {
             compoundTag = Sounds!.AsTag();
         }
-        
-        TagSerializer.Serialize(buffer, compoundTag, new TagSerializerOptions()
-        {
-            Network = true
-        });
-    
-        writer.WriteByteArray([.. buffer.WrittenSpan]);
-    }
 
-    public IRegistryEntry Read(MinecraftStream writer)
-    {
-        throw new NotImplementedException();
+        return compoundTag;
     }
 }

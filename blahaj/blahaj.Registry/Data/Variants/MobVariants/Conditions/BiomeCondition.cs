@@ -5,17 +5,14 @@ namespace blahaj.blahaj.Registry.Data.Variants;
 
 public class BiomeCondition : Condition
 {
-    public BiomeCondition(string[] biomes)
-    {
-        Biomes = biomes;
-    }
+    public BiomeCondition() { }
 
-    public string[] Biomes { get; set; }
+    public new string[] Biomes => base.Biomes!;
     
-    public override CompoundTag AsTag()
+    protected override CompoundTagBuilder AsBuilder()
     {
-        var x = CompoundTagBuilder.Create();
-
+        var x = base.AsBuilder();
+        
         if (Biomes.Length > 1)
         {
             x.AddStringList(Biomes, "biomes");
@@ -25,6 +22,6 @@ public class BiomeCondition : Condition
             x.AddString(Biomes[0], "biomes");
         }
 
-        return x.Build();
+        return x;
     }
 }
