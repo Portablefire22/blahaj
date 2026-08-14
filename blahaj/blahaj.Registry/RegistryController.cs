@@ -44,6 +44,8 @@ public static class RegistryController
         Logger.LogInformation("Initialising registry data..."); 
         InitDamageTypes(); 
         InitVariants();
+        InitTrimMaterials();
+        
         Logger.LogInformation("Finished Initialising registry data");
         Logger.LogInformation("Tagging registry data...");
         InitTagged();
@@ -205,6 +207,33 @@ public static class RegistryController
             VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
         }
     }
-    
+
+    private static void InitTrimMaterials()
+    {
+        var directories = Directory.GetDirectories(RegistryPath, "trim_material");   
+        foreach (var directory in directories)
+        {
+            var directoryName = directory.Substring(directory.LastIndexOf('/') + 1);
+            Logger.LogDebug($"Registering trim materials...");
+            
+            var files = Directory.GetFiles(directory, "*.json");
+            var tmp = new List<ArmourTrim>();
+            foreach (var file in files)
+            {
+                var json = File.ReadAllText(file);
+
+                var variant =  JsonSerializer.Deserialize<ArmourTrim>(json, _jsonSerializerOptions);
+                if (variant == null) continue;
+
+                
+                var name = file.Substring(file.LastIndexOf('/') + 1).Replace(".json", "");
+                variant.Identifier = $"minecraft:{name}";
+
+                tmp.Add(variant);
+                Logger.LogDebug($"Registered {variant.Identifier}");
+            }
+            VariantsRegistry.Add(new RegistryData($"minecraft:{directoryName}", [.. tmp]));
+        }
+    }
     
 }
