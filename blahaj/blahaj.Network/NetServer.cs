@@ -42,7 +42,7 @@ public class NetServer : IDisposable
             {
                 if (image.Width != 64 || image.Height != 64)
                 {
-                    image.Mutate(x => x.Resize(64,64));
+                    image.Mutate(x => x.Resize(64,64, KnownResamplers.Lanczos8));
                 }
                 image.SaveAsPng(m);
                 var imageBytes = m.ToArray();
