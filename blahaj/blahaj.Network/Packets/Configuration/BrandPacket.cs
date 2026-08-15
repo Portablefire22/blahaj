@@ -1,9 +1,11 @@
-using System.Text;
+using blahaj.blahaj.Network.Packets.Interfaces;
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets.Configuration;
+namespace blahaj.blahaj.Network.Packets.Configuration;
 
-public class BrandPacket : Packet
+[PacketState(ConnectionState.Configuration)]
+[PacketDirection(PacketDirection.ClientToServer, PacketDirection.ServerToClient)]
+public class BrandPacket : Packet, IInvokable
 {
     public string Channel { get; private set; }
     
@@ -26,5 +28,10 @@ public class BrandPacket : Packet
     {
         stream.WriteString("minecraft:brand");
         stream.WriteString(Channel);
+    }
+
+    public Packet? Invoke()
+    {
+        return new BrandPacket("Blahaj");
     }
 }

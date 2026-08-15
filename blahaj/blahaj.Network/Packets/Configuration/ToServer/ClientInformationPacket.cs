@@ -1,7 +1,9 @@
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets.Configuration.ToServer;
+namespace blahaj.blahaj.Network.Packets.Configuration.ToServer;
 
+[PacketState(ConnectionState.Configuration)]
+[PacketDirection(PacketDirection.ClientToServer)]
 public class ClientInformationPacket : Packet
 {
     public ClientInformationPacket() : base(0x00) {}

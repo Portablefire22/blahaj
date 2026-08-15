@@ -1,10 +1,13 @@
-using blahaj.blahaj.Registry;
+using blahaj.blahaj.Network.Packets.Interfaces;
+using blahaj.blahaj.Registry.Packs;
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets.Configuration;
+namespace blahaj.blahaj.Network.Packets.Configuration;
 
 
-public class KnownPacksPacket : Packet
+[PacketState(ConnectionState.Configuration)]
+[PacketDirection(PacketDirection.ClientToServer, PacketDirection.ServerToClient)]
+public class KnownPacksPacket : Packet, IInvokableWithClient
 {
     public Pack[] KnownPacks { get; private set; }
     
@@ -37,4 +40,13 @@ public class KnownPacksPacket : Packet
            stream.WriteString(pack.Version);
        }
     }
+
+    public Packet? Invoke()
+    {
+        Client.KnownPacks = KnownPacks;
+        Client.SendRegistryData();
+        return null;
+    }
+
+    public NetClient Client { get; set; }
 }

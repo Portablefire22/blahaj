@@ -1,29 +1,32 @@
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using blahaj.blahaj.Stream;
-using blahaj.Network.Packets.Configuration;
-using blahaj.Network.Packets.Configuration.ToServer;
-using blahaj.Network.Packets.Handshake;
-using blahaj.Network.Packets.Login;
-using blahaj.Network.Packets.Play.ToServer;
-using blahaj.Network.Packets.Status;
+using Microsoft.Extensions.Logging;
 
-namespace blahaj.Network.Packets;
+namespace blahaj.blahaj.Network.Packets;
 
 public static class MinecraftPacketFactory
 {
-    private static PacketFactory<ConnectionState, MinecraftStream, Packet> HandshakePacketFactory { get; }
-    private static PacketFactory<ConnectionState, MinecraftStream, Packet> StatusPacketFactory { get; }
-    private static PacketFactory<ConnectionState, MinecraftStream, Packet> LoginPacketFactory { get; }
-    private static PacketFactory<ConnectionState, MinecraftStream, Packet> ConfigurationPacketFactory { get; }
-    private static PacketFactory<ConnectionState, MinecraftStream, Packet> PlayPacketFactory { get; }
+    private static PacketFactory HandshakePacketFactory { get; }
+    private static PacketFactory StatusPacketFactory { get; }
+    private static PacketFactory LoginPacketFactory { get; }
+    private static PacketFactory ConfigurationPacketFactory { get; }
+    private static PacketFactory PlayPacketFactory { get; }
+    
+    private static readonly string _targetNamespace = "blahaj.blahaj.Network.Packets";
+
+    private static ILogger Logger;
     
     static MinecraftPacketFactory()
     {
-        HandshakePacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
-        StatusPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
-        LoginPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
-        ConfigurationPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
-        PlayPacketFactory = new PacketFactory<ConnectionState, MinecraftStream, Packet>();
+        HandshakePacketFactory = new PacketFactory();
+        StatusPacketFactory = new PacketFactory();
+        LoginPacketFactory = new PacketFactory();
+        ConfigurationPacketFactory = new PacketFactory();
+        PlayPacketFactory = new PacketFactory();
 
+        using ILoggerFactory factory = LoggerFactory.Create(build => build.AddConsole());
+        Logger = factory.CreateLogger<NetServer>();
         RegisterPackets();
     }
     
@@ -57,49 +60,58 @@ public static class MinecraftPacketFactory
 
     private static void RegisterPackets()
     {
-        Register<HandshakePacket>(ConnectionState.Handshake);
-        
-        Register<StatusRequestPacket>(ConnectionState.Status);
-        Register<PingPacket>(ConnectionState.Status);
-
-        Register<LoginStartPacket>(ConnectionState.Login);
-        Register<EncryptionResponsePacket>(ConnectionState.Login);
-        Register<LoginAcknowledgedPacket>(ConnectionState.Login);
-
-        Register<BrandPacket>(ConnectionState.Configuration);
-        Register<ClientInformationPacket>(ConnectionState.Configuration);
-        Register<KnownPacksPacket>(ConnectionState.Configuration);
-        Register<AcknowledgeFinishConfiguration>(ConnectionState.Configuration);
-        
-        Register<ClientTickEndPacket>(ConnectionState.Play);
-    }
-    
-    private static void Register<Pt>(ConnectionState state) where Pt : Packet, new()
-    {switch (state)
+        var packetTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes())
+            .Where(x => x is { IsClass: true, Namespace: not null } 
+                        && !x.IsDefined(typeof(CompilerGeneratedAttribute), false)
+                        && x.Namespace.Contains(_targetNamespace)
+            );
+        foreach (var type in packetTypes)
         {
-            case ConnectionState.Handshake:
-                Register<Pt>(HandshakePacketFactory);
-                break;
-            case ConnectionState.Status:
-                Register<Pt>(StatusPacketFactory);
-                break;
-            case ConnectionState.Login:
-                Register<Pt>(LoginPacketFactory);
-                break;
-            case ConnectionState.Configuration:
-                Register<Pt>(ConfigurationPacketFactory);
-                break;
-            case ConnectionState.Play:
-                Register<Pt>(PlayPacketFactory);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(state), state, null);
+            Logger.LogDebug($"Found type: {type}");
+            if (type.GetTypeInfo().GetCustomAttribute(typeof(PacketDirectionAttribute)) == null)
+            {
+                continue;
+            }
+            var packet = Activator.CreateInstance(type);
+            if (packet != null && packet is Packet gamePacket)
+            {
+                RegisterPacket(gamePacket);
+                Logger.LogDebug($"Added GamePacket ID: 0x{gamePacket.Id:x} ({type})");
+            }
         }
     }
-    
-    private static void Register<Pt>(PacketFactory<ConnectionState, MinecraftStream, Packet> factory)
-    where Pt : Packet, new()
+
+    private static void RegisterPacket(Packet packet)
     {
-        factory.Register(() => new Pt());
+        var attribute = packet.GetType().GetTypeInfo().GetCustomAttribute(typeof(PacketDirectionAttribute), true);
+        if (attribute is not PacketDirectionAttribute directionAttribute) return;
+        var state = packet.GetType().GetTypeInfo().GetCustomAttribute(typeof(PacketStateAttribute), true);
+        if (state is not PacketStateAttribute packetStateAttribute) return;
+        foreach (var dir in directionAttribute.Directions)
+        {
+            if (dir == PacketDirection.ServerToClient) continue;
+            Packet Func() => (Packet)Activator.CreateInstance(packet.GetType());            
+            switch (packetStateAttribute.State)
+            {
+                case ConnectionState.Handshake:
+                    HandshakePacketFactory.Register(Func);
+                    break;
+                case ConnectionState.Status:
+                    StatusPacketFactory.Register(Func);
+                    break;
+                case ConnectionState.Login:
+                    LoginPacketFactory.Register(Func);
+                    break;
+                case ConnectionState.Configuration:
+                    ConfigurationPacketFactory.Register(Func);
+                    break;
+                case ConnectionState.Play:
+                    PlayPacketFactory.Register(Func);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            } 
+            Logger.LogInformation($"Registered ID: {packet.Id} State: {packetStateAttribute.State}");
+        } 
     }
 }

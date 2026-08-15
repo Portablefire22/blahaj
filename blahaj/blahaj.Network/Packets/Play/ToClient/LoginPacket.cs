@@ -2,8 +2,10 @@ using System.Numerics;
 using blahaj.blahaj.Stream;
 using blahaj.blahaj.World;
 
-namespace blahaj.Network.Packets.Play.ToClient;
+namespace blahaj.blahaj.Network.Packets.Play.ToClient;
 
+[PacketState(ConnectionState.Play)]
+[PacketDirection(PacketDirection.ServerToClient)]
 public class LoginPacket : Packet
 {
     public int EntityId { get; private set; }

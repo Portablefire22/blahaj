@@ -1,4 +1,4 @@
-﻿namespace blahaj.Network;
+﻿namespace blahaj.blahaj.Network;
 
 class Program
 {

@@ -1,5 +1,5 @@
-using blahaj.Network.Packets.Configuration.ToServer;
-using blahaj.Network.Packets.Status.Json;
+using blahaj.blahaj.Network.Packets.Configuration.ToServer;
+using blahaj.blahaj.Network.Packets.Status.ToClient.Json;
 
 namespace blahaj.blahaj.Player;
 

@@ -4,7 +4,7 @@ using Raspite;
 using Raspite.Tags;
 using Raspite.Tags.Building;
 
-namespace blahaj.blahaj.Registry.Data.JukeboxSong;
+namespace blahaj.blahaj.Registry.Data.JukeboxSongs;
 
 public class JukeboxSong : IRegistryEntry, INbt
 {

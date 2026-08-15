@@ -1,8 +1,11 @@
+using blahaj.blahaj.Network.Packets.Interfaces;
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets.Handshake;
+namespace blahaj.blahaj.Network.Packets.Handshake.ToServer;
 
-public class HandshakePacket : Packet
+[PacketState(ConnectionState.Handshake)]
+[PacketDirection(PacketDirection.ClientToServer)]
+public class HandshakePacket : Packet, IInvokableWithClient
 {
     public int ProtocolVersion { get; private set; }
     public string ServerAddress { get; private set; }
@@ -22,4 +25,12 @@ public class HandshakePacket : Packet
     public override void Write(MinecraftStream stream)
     {
     }
+
+    public Packet? Invoke()
+    {
+        Client.ConnectionState = Intent;
+        return null;
+    }
+
+    public NetClient Client { get; set; }
 }

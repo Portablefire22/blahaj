@@ -4,25 +4,28 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using blahaj.blahaj.Crypto;
+using blahaj.blahaj.Network.Events;
+using blahaj.blahaj.Network.Packets;
+using blahaj.blahaj.Network.Packets.Configuration;
+using blahaj.blahaj.Network.Packets.Configuration.ToClient;
+using blahaj.blahaj.Network.Packets.Configuration.ToServer;
+using blahaj.blahaj.Network.Packets.Interfaces;
+using blahaj.blahaj.Network.Packets.Login.ToClient;
+using blahaj.blahaj.Network.Packets.Login.ToClient.Json;
+using blahaj.blahaj.Network.Packets.Login.ToServer;
+using blahaj.blahaj.Network.Packets.Play.ToClient;
+using blahaj.blahaj.Network.Packets.Status;
+using blahaj.blahaj.Network.Packets.Status.ToClient;
+using blahaj.blahaj.Network.Packets.Status.ToClient.Json;
+using blahaj.blahaj.Network.Packets.Status.ToServer;
 using blahaj.blahaj.Player;
 using blahaj.blahaj.Registry;
 using blahaj.blahaj.Registry.Packs;
 using blahaj.blahaj.Stream;
 using blahaj.blahaj.World;
-using blahaj.Network.Packets;
-using blahaj.Network.Events;
-using blahaj.Network.Packets.Configuration;
-using blahaj.Network.Packets.Configuration.ToClient;
-using blahaj.Network.Packets.Configuration.ToServer;
-using blahaj.Network.Packets.Handshake;
-using blahaj.Network.Packets.Login;
-using blahaj.Network.Packets.Login.Json;
-using blahaj.Network.Packets.Play.ToClient;
-using blahaj.Network.Packets.Status;
-using blahaj.Network.Packets.Status.Json;
 using Microsoft.Extensions.Logging;
 
-namespace blahaj.Network;
+namespace blahaj.blahaj.Network;
 
 public class NetClient : IDisposable
 {
@@ -33,13 +36,13 @@ public class NetClient : IDisposable
    
     public EndPoint? RemoteEndPoint { get; }
 
-    public MinecraftPlayer Player { get; private set; }
+    public MinecraftPlayer Player { get; set; }
     
     public bool UseCompression = false;
 
     private ConnectionState _conState = ConnectionState.Handshake;
     
-    private ConnectionState ConnectionState
+    public ConnectionState ConnectionState
     {
         get => _conState;
         set
@@ -57,14 +60,14 @@ public class NetClient : IDisposable
 
     private BlockingCollection<Packet> WriteQueue { get; }
 
-    private byte[]? RandomToken;
+    public byte[]? RandomToken { get; set; }
     
     private bool ShouldStop { get; set; }
     
     private MinecraftStream ReaderStream { get; set; }
     private MinecraftStream WriterStream { get; set; }
 
-    private Pack[] KnownPacks { get; set; }
+    public Pack[] KnownPacks { get; set; }
     
     public NetClient(TcpClient tcpClient, NetServer server)
     {
@@ -87,6 +90,12 @@ public class NetClient : IDisposable
         Player = new MinecraftPlayer();
     }
 
+    public void InitEncryption(byte[] sharedSecret)
+    {
+        ReaderStream.InitEncryption(sharedSecret);
+        WriterStream.InitEncryption(sharedSecret);
+    }
+    
     public void Stop()
     {
         ShouldStop = true;
@@ -135,7 +144,7 @@ public class NetClient : IDisposable
                         Logger.LogCritical($"Unknown Packet ID: {packetId}, State: {ConnectionState}");
                         continue;
                     }
-
+                    
                     packet.Read(new MinecraftStream(new MemoryStream(data)));
                     var args = new PacketReceivedArgs(packet);
                     Logger.LogDebug($"Received: {packet.GetType()}");
@@ -158,191 +167,34 @@ public class NetClient : IDisposable
     
     private void OnPacket(PacketReceivedArgs args)
     {
-        switch (ConnectionState)
-        {
-            case ConnectionState.Handshake:
-                HandleHandshake(args.Packet);
-                break;
-            case ConnectionState.Status:
-                HandleStatus(args.Packet);
-                break;
-            case ConnectionState.Login:
-                HandleLogin(args.Packet);
-                break;
-            case ConnectionState.Configuration:
-                HandleConfiguration(args.Packet);
-                break;
-            case ConnectionState.Play:
-                HandlePlay(args.Packet);
-                break;
-            default:
-                Logger.LogCritical($"Invalid State: {ConnectionState}");
-                break;
-        } 
-    }
 
-    private void HandleHandshake(Packet packet)
-    {
-        switch (packet)
+        if (args.Packet is not IInvokable invokable) return;
+
+        if (invokable is IInvokableWithClient client)
         {
-            case HandshakePacket handshakePacket:
-                ConnectionState = handshakePacket.Intent;
-                break;
-            default:
-                Logger.LogCritical($"Invalid Handshake packet: {packet.Id}");
-                break;
+            client.Client = this;
         }
-    }
-
-    private void HandleStatus(Packet packet)
-    {
-        switch (packet)
+        if (invokable is IInvokableWithServer server)
         {
-            case StatusRequestPacket statusRequestPacket:
-                HandleStatusResponse(statusRequestPacket);
-                break;
-            case PingPacket pingPacket:
-                HandlePing(pingPacket);
-                break;
-            case EncryptionResponsePacket encryptionResponsePacket:
-                HandleEncryptionResponse(encryptionResponsePacket);
-                break;
-            default:
-                Logger.LogCritical($"Invalid Status packet: {packet.Id}");
-                break;
+            server.Server = Server;
         }
-    }
-    
-    private void HandleLogin(Packet packet)
-    {
-        switch (packet)
+        if (invokable is IInvokableWithPlayer player)
         {
-            case LoginStartPacket loginStartPacket:
-                HandleLoginStart(loginStartPacket);
-                break;
-            case EncryptionResponsePacket encryptionResponsePacket:
-                HandleEncryptionResponse(encryptionResponsePacket);
-                break;
-            case LoginAcknowledgedPacket:
-                ConnectionState = ConnectionState.Configuration;
-                SendKnownPacks();
-                break;
-            default:
-                Logger.LogCritical($"Invalid Login packet: {packet.Id}");
-                break;
+            player.Player = Player;
         }
-    }
-    private void HandleLoginStart(LoginStartPacket packet)
-    {
-        Player = new MinecraftPlayer(packet.Name, packet.Uuid);
-        Logger.LogInformation($"Connecting Player: {packet.Name} ({packet.Uuid})");
-        SendEncryptionRequest();
+        
+        var resp = invokable.Invoke();
+        
+        if (resp != null) WriteQueue.Add(resp);
     }
 
-    private void SendEncryptionRequest()
-    {
-        var packet = new EncryptionRequestPacket("BlahajCSharpMeowPurr", true);
-        RandomToken = packet.VerifyToken;
-        WriteQueue.Add(packet);
-    }
-
-
-    private void HandleEncryptionResponse(EncryptionResponsePacket packet)
-    {
-        string serverHash;
-        LoginSuccessJson? json;
-        using (var ms = new MemoryStream())
-        {
-            var ascii = Encoding.ASCII.GetBytes("BlahajCSharpMeowPurr");
-            ms.Write(ascii, 0, ascii.Length);
-            ms.Write(packet.SharedSecret, 0, 16);
-            var publicKey = Encryption.ExportKeyAsDer();
-            ms.Write(publicKey, 0, publicKey.Length);
-            serverHash = MinecraftShaDigest.Sha(ms.ToArray());
-        }
-        using (var client = new HttpClient())
-        {
-            client.BaseAddress = new Uri("https://sessionserver.mojang.com/");
-            Logger.LogDebug($"{client.BaseAddress}session/minecraft/hasJoined?username={Player.Name}&serverId={serverHash}");
-            var res = client.GetStringAsync($"session/minecraft/hasJoined?username={Player.Name}&serverId={serverHash}").Result;
-            if (res.Length == 0) {
-                Disconnect();
-                return;
-            }
-
-            var options = new JsonSerializerOptions()
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
-            json = JsonSerializer.Deserialize<LoginSuccessJson>(res, options);  
-            if (json == null) {
-                Disconnect();
-                return;
-            }
-            Logger.LogInformation("Authentication Successful");
-        }
-        ReaderStream.InitEncryption(packet.SharedSecret);
-        WriterStream.InitEncryption(packet.SharedSecret);
-        SendLoginSuccess(json);
-    }
-
-    private void HandlePing(PingPacket packet)
-    {
-        WriteQueue.Add(packet);
-    }
-
-    private void SendLoginSuccess(LoginSuccessJson json)
-    {
-        var packet = new LoginSuccessPacket(json, Player.SessionId);
-        WriteQueue.Add(packet);
-    }
-
-    private void HandleConfiguration(Packet packet)
-    {
-        switch (packet)
-        {
-            case BrandPacket brandPacket:
-                HandleBrand(brandPacket);
-                break;
-            case ClientInformationPacket clientInformationPacket:
-                HandleClientInformation(clientInformationPacket);
-                break;
-            case KnownPacksPacket knownPacksPacket:
-                HandleKnownPacks(knownPacksPacket);
-                break;
-            case AcknowledgeFinishConfiguration:
-                HandleFinishConfiguration();
-                break;
-            default:
-                Logger.LogCritical($"Invalid Configuration packet: {packet.Id}");
-                break;
-        }
-    }
-
-    private void HandleClientInformation(ClientInformationPacket packet)
-    {
-        Logger.LogDebug($"Client Information: {packet.Locale} {packet.ViewDistance}");   
-    }
-
-    private void HandleBrand(BrandPacket packet)
-    {
-        var brand = new BrandPacket("Blahaj");
-        WriteQueue.Add(brand);
-    }
-
-    private void SendKnownPacks()
+    public void SendKnownPacks()
     {
         var packs = new Pack[] { new MinecraftCorePack(Server.Config["version"]) };
         WriteQueue.Add(new KnownPacksPacket(packs));
     }
-
-    private void HandleKnownPacks(KnownPacksPacket packet)
-    {
-        KnownPacks = packet.KnownPacks;
-        SendRegistryData();
-    }
-
-    private void SendRegistryData()
+    
+    public void SendRegistryData()
     {
         WriteQueue.Add(new RegistryDataPacket(RegistryController.DamageTypeRegistry));
         foreach (var variant in RegistryController.VariantsRegistry)
@@ -358,49 +210,6 @@ public class NetClient : IDisposable
     private void SendFinishConfig()
     {
        WriteQueue.Add(new FinishConfigurationPacket()); 
-    }
-
-    private void HandleFinishConfiguration()
-    {
-        ConnectionState = ConnectionState.Play;
-        SendLoginPlay();
-    }
-
-    private void HandlePlay(Packet packet)
-    {
-        switch (packet)
-        {
-            default:
-                Logger.LogCritical($"Invalid Play packet: {packet.Id}");
-                break;
-        }
-    }
-
-    private void SendLoginPlay()
-    {
-        // Ewwwwwwwwwwwwww
-        var set = WorldSettings.FromConfig(Server.Config);
-        var packet = new LoginPacket(set, 1, "overworld", false, null, 
-            null, 0, 0);
-        WriteQueue.Add(packet);
-    }
-    
-    private void HandleStatusResponse(StatusRequestPacket packet)
-    {
-        // Maybe I should check for nulls, or maybe the user should just set up configs correctly
-        var version = new StatusVersion(Server.Config["version"], short.Parse(Server.Config["protocol"]));
-        // Get all connections that contain a valid player
-        var validPlayers = Server.Players.Where(x => x.IsValid()).ToArray();
-        // Get all players that want to show in the listing
-        var temp = validPlayers.Where(x => x.ClientInformation.AllowServerListings).Select(x => 
-                x.ToStatus()).ToArray();
-        var players = new StatusPlayers(int.Parse(Server.Config["maxPlayers"]), validPlayers.Length,
-            temp.Length > 0 ? temp : []);
-        var desc = new StatusDescription(Server.Config["motd"]);
-        
-        var resp = new StatusResponse(version, players, desc, $"data:image/png;base64,{Server.Favicon}", 
-            bool.Parse(Server.Config["enforcesSecureChat"]));
-        WriteQueue.Add(new StatusResponsePacket(resp));
     }
 
     private void WriteStream()

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using Raspite.Tags;
 using Raspite.Tags.Building;
 
-namespace blahaj.blahaj.Registry.Data.Variants;
+namespace blahaj.blahaj.Registry.Data.Variants.MobVariants.Conditions;
 
 public class Condition
 {

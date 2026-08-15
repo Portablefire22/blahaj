@@ -4,7 +4,7 @@ using Raspite;
 using Raspite.Tags;
 using Raspite.Tags.Building;
 
-namespace blahaj.blahaj.Registry.Data.Variants;
+namespace blahaj.blahaj.Registry.Data.Variants.MobVariants;
 
 public class MobVariant : IRegistryEntry, INbt
 {

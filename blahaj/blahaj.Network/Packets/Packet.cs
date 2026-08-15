@@ -1,6 +1,6 @@
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets;
+namespace blahaj.blahaj.Network.Packets;
 
 public abstract class Packet
 {

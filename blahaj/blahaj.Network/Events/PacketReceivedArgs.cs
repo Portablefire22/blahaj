@@ -1,6 +1,6 @@
-using blahaj.Network.Packets;
+using blahaj.blahaj.Network.Packets;
 
-namespace blahaj.Network.Events;
+namespace blahaj.blahaj.Network.Events;
 
 public class PacketReceivedArgs
 {

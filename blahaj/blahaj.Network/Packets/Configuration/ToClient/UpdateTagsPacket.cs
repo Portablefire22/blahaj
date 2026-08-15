@@ -1,9 +1,10 @@
 using blahaj.blahaj.Registry.Data;
 using blahaj.blahaj.Stream;
-using Raspite.Tags;
 
-namespace blahaj.Network.Packets.Configuration.ToClient;
+namespace blahaj.blahaj.Network.Packets.Configuration.ToClient;
 
+[PacketState(ConnectionState.Configuration)]
+[PacketDirection(PacketDirection.ServerToClient)]
 public class UpdateTagsPacket : Packet
 {
     public UpdateTagsPacket() : base(0xD)

@@ -1,8 +1,11 @@
+using blahaj.blahaj.Network.Packets.Interfaces;
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets.Status;
+namespace blahaj.blahaj.Network.Packets.Status;
 
-public class PingPacket : Packet
+[PacketState(ConnectionState.Status)]
+[PacketDirection(PacketDirection.ClientToServer, PacketDirection.ServerToClient)]
+public class PingPacket : Packet, IInvokable
 {
     private long Timestamp { get; set; }
     
@@ -18,5 +21,10 @@ public class PingPacket : Packet
     public override void Write(MinecraftStream stream)
     {
         stream.WriteLong(Timestamp);
+    }
+
+    public Packet? Invoke()
+    {
+        return this;
     }
 }

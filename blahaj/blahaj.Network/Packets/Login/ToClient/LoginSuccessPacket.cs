@@ -1,16 +1,22 @@
+using blahaj.blahaj.Network.Packets.Login.ToClient.Json;
 using blahaj.blahaj.Stream;
-using blahaj.Network.Packets.Login.Json;
 
-namespace blahaj.Network.Packets.Login;
+namespace blahaj.blahaj.Network.Packets.Login.ToClient;
 
+[PacketState(ConnectionState.Login)]
+[PacketDirection(PacketDirection.ServerToClient)]
 public class LoginSuccessPacket : Packet
 {
     public Guid Uuid { get; private set; }
     public string Username { get; private set; }
     public Guid SessionId { get; private set; }
     public LoginSuccessProperties[] Properties { get; private set; }
-    
-    public LoginSuccessPacket(LoginSuccessJson json, Guid sessionId) : base(0x02)
+
+    public LoginSuccessPacket() : base(0x02)
+    {
+    }
+
+    public LoginSuccessPacket(LoginSuccessJson json, Guid sessionId) : this()
     {
         Uuid = Guid.Parse(json.Id);
         Username = json.Name;

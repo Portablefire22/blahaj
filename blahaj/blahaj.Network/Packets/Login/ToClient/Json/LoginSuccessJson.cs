@@ -1,4 +1,4 @@
-namespace blahaj.Network.Packets.Login.Json;
+namespace blahaj.blahaj.Network.Packets.Login.ToClient.Json;
 
 public class LoginSuccessJson
 {

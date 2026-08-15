@@ -1,7 +1,9 @@
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets.Login;
+namespace blahaj.blahaj.Network.Packets.Login.ToClient;
 
+[PacketState(ConnectionState.Login)]
+[PacketDirection(PacketDirection.ServerToClient)]
 public class DisconnectPacket : Packet
 {
     public string Reason { get; private set; }

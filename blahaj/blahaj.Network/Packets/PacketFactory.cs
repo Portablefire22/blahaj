@@ -1,18 +1,13 @@
-using blahaj.Network.Packets.Handshake;
+namespace blahaj.blahaj.Network.Packets;
 
-namespace blahaj.Network.Packets;
-
-public class PacketFactory<T, S, P> where P : Packet
+public class PacketFactory
 {
 
-    private Dictionary<int, Func<P>> Packets;
+    private Dictionary<int, Func<Packet>> Packets { get; } = [];
 
-    public PacketFactory()
-    {
-        Packets = new Dictionary<int, Func<P>>();
-    }
+    public PacketFactory() {}
     
-    public bool TryGet(int packetId, out P? packet)
+    public bool TryGet(int packetId, out Packet? packet)
     {
         if (!Packets.TryGetValue(packetId, out var p))
         {
@@ -23,7 +18,7 @@ public class PacketFactory<T, S, P> where P : Packet
         return true;
     }
 
-    public void Register(Func<P> newPacketFunc)
+    public void Register(Func<Packet> newPacketFunc)
     {
         var pack = newPacketFunc();
         Packets.Add(pack.Id, newPacketFunc);

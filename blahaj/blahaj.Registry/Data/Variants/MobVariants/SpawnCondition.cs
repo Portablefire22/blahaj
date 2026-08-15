@@ -1,7 +1,8 @@
+using blahaj.blahaj.Registry.Data.Variants.MobVariants.Conditions;
 using Raspite.Tags;
 using Raspite.Tags.Building;
 
-namespace blahaj.blahaj.Registry.Data.Variants;
+namespace blahaj.blahaj.Registry.Data.Variants.MobVariants;
 
 public class SpawnCondition : INbt
 {

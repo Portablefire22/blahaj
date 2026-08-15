@@ -1,8 +1,10 @@
 using blahaj.blahaj.Crypto;
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets.Login;
+namespace blahaj.blahaj.Network.Packets.Login.ToClient;
 
+[PacketState(ConnectionState.Login)]
+[PacketDirection(PacketDirection.ServerToClient)]
 public class EncryptionRequestPacket : Packet
 {
     private string ServerId { get; }
@@ -11,7 +13,7 @@ public class EncryptionRequestPacket : Packet
 
     public EncryptionRequestPacket() : base(0x01) {}
     
-    public EncryptionRequestPacket(string serverId, bool shouldAuth) : base(0x01)
+    public EncryptionRequestPacket(string serverId, bool shouldAuth) : this()
     {
         ServerId = serverId;
         ShouldAuthenticate = shouldAuth;

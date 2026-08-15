@@ -1,8 +1,9 @@
 using blahaj.blahaj.Stream;
-using Org.BouncyCastle.Utilities.Encoders;
 
-namespace blahaj.Network.Packets.Configuration.ToClient;
+namespace blahaj.blahaj.Network.Packets.Configuration.ToClient;
 
+[PacketState(ConnectionState.Configuration)]
+[PacketDirection(PacketDirection.ServerToClient)]
 public class FinishConfigurationPacket : Packet
 {
     public FinishConfigurationPacket() : base (0x03) {}

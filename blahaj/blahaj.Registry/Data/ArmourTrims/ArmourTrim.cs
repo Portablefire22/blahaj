@@ -4,7 +4,7 @@ using Raspite;
 using Raspite.Tags;
 using Raspite.Tags.Building;
 
-namespace blahaj.blahaj.Registry.Data;
+namespace blahaj.blahaj.Registry.Data.ArmourTrims;
 
 public class ArmourTrim : IRegistryEntry, INbt
 {

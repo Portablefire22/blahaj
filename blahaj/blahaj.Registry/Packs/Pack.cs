@@ -1,4 +1,4 @@
-namespace blahaj.blahaj.Registry;
+namespace blahaj.blahaj.Registry.Packs;
 
 public class Pack
 {

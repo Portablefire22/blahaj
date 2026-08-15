@@ -1,12 +1,14 @@
 using System.Text.Json;
+using blahaj.blahaj.Network;
 using blahaj.blahaj.Registry.Data;
+using blahaj.blahaj.Registry.Data.ArmourTrims;
 using blahaj.blahaj.Registry.Data.DamageType;
 using blahaj.blahaj.Registry.Data.Dimensions;
 using blahaj.blahaj.Registry.Data.Instruments;
-using blahaj.blahaj.Registry.Data.JukeboxSong;
-using blahaj.blahaj.Registry.Data.SoundVariants;
+using blahaj.blahaj.Registry.Data.JukeboxSongs;
 using blahaj.blahaj.Registry.Data.Variants;
-using blahaj.Network;
+using blahaj.blahaj.Registry.Data.Variants.MobVariants;
+using blahaj.blahaj.Registry.Data.Variants.MobVariants.SoundVariants;
 using Microsoft.Extensions.Logging;
 using Org.BouncyCastle.Asn1.X509.Qualified;
 

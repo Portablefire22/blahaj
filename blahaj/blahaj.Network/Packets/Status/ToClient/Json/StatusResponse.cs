@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace blahaj.Network.Packets.Status.Json;
+namespace blahaj.blahaj.Network.Packets.Status.ToClient.Json;
 
 public class StatusResponse
 {

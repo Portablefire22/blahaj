@@ -4,7 +4,7 @@ using Raspite;
 using Raspite.Tags;
 using Raspite.Tags.Building;
 
-namespace blahaj.blahaj.Registry.Data.SoundVariants;
+namespace blahaj.blahaj.Registry.Data.Variants.MobVariants.SoundVariants;
 
 public class SoundVariant : IRegistryEntry, INbt
 {

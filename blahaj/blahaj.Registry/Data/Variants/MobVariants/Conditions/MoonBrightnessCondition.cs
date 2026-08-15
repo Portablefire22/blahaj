@@ -1,7 +1,6 @@
-using System.Runtime.CompilerServices;
 using Raspite.Tags.Building;
 
-namespace blahaj.blahaj.Registry.Data.Variants;
+namespace blahaj.blahaj.Registry.Data.Variants.MobVariants.Conditions;
 
 public class MoonBrightnessCondition : Condition
 {

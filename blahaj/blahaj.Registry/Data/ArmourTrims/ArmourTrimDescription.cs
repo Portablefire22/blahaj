@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 using Raspite.Tags;
 using Raspite.Tags.Building;
 
-namespace blahaj.blahaj.Registry.Data;
+namespace blahaj.blahaj.Registry.Data.ArmourTrims;
 
 public class ArmourTrimDescription : INbt
 {

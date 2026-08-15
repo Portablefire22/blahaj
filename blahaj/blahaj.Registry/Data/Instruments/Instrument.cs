@@ -1,5 +1,5 @@
 using System.Buffers;
-using blahaj.blahaj.Registry.Data.JukeboxSong;
+using blahaj.blahaj.Registry.Data.JukeboxSongs;
 using blahaj.blahaj.Stream;
 using Raspite;
 using Raspite.Tags;

@@ -1,19 +1,15 @@
 using System.Collections.Concurrent;
-using System.Drawing;
 using System.Net;
-using System.Net.Mime;
 using System.Net.Sockets;
+using blahaj.blahaj.Network.Events;
 using blahaj.blahaj.Player;
 using blahaj.blahaj.Registry;
-using blahaj.Network.Events;
-using blahaj.Network.Packets;
-using blahaj.Network.Packets.Handshake;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
-namespace blahaj.Network;
+namespace blahaj.blahaj.Network;
 
 public class NetServer : IDisposable
 {

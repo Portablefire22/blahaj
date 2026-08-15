@@ -1,15 +1,21 @@
 using blahaj.blahaj.Registry;
 using blahaj.blahaj.Stream;
 
-namespace blahaj.Network.Packets.Configuration.ToClient;
+namespace blahaj.blahaj.Network.Packets.Configuration.ToClient;
 
+[PacketState(ConnectionState.Configuration)]
+[PacketDirection(PacketDirection.ServerToClient)]
 public class RegistryDataPacket : Packet
 {
     public RegistryData Data { get; set; }
     
-    public RegistryDataPacket(RegistryData data) : base(0x7)
+    public RegistryDataPacket(RegistryData data) : this()
     {
         Data = data;
+    }
+
+    public RegistryDataPacket() : base(0x7)
+    {
     }
 
     public override void Read(MinecraftStream stream)

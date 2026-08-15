@@ -1,6 +1,4 @@
-using Raspite.Tags;
-
-namespace blahaj.blahaj.Registry.Data.SoundVariants;
+namespace blahaj.blahaj.Registry.Data.Variants.MobVariants.SoundVariants;
 
 public interface ISoundEntry : INbt
 {
