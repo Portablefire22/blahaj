@@ -1,15 +1,18 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
+using blahaj.blahaj.Entities;
 using blahaj.blahaj.Network.Events;
 using blahaj.blahaj.Network.Packets;
 using blahaj.blahaj.Network.Packets.Configuration;
 using blahaj.blahaj.Network.Packets.Configuration.ToClient;
 using blahaj.blahaj.Network.Packets.Interfaces;
-using blahaj.blahaj.Player;
+using blahaj.blahaj.Network.Packets.Play.ToClient;
 using blahaj.blahaj.Registry;
 using blahaj.blahaj.Registry.Packs;
 using blahaj.blahaj.Stream;
+using blahaj.blahaj.World;
 using Microsoft.Extensions.Logging;
 
 namespace blahaj.blahaj.Network;
@@ -19,11 +22,11 @@ public class NetClient : IDisposable
     private ILogger<NetClient> Logger {get;}
     public TcpClient TcpClient { get; }
 
-    private NetServer Server { get; }
+    public NetServer Server { get; }
    
-    public EndPoint? RemoteEndPoint { get; }
+    public EndPoint? RemoteEndPoint { get; protected set;  }
 
-    public MinecraftPlayer Player { get; set; }
+    public MinecraftPlayer? Player { get; set; }
     
     public bool UseCompression = false;
 
@@ -49,10 +52,10 @@ public class NetClient : IDisposable
 
     public byte[]? RandomToken { get; set; }
     
-    private bool ShouldStop { get; set; }
+    protected bool ShouldStop { get; set; }
     
-    private MinecraftStream ReaderStream { get; set; }
-    private MinecraftStream WriterStream { get; set; }
+    public MinecraftStream ReaderStream { get; protected set; }
+    public MinecraftStream WriterStream { get; protected set; }
 
     public Pack[] KnownPacks { get; set; }
     
@@ -74,7 +77,6 @@ public class NetClient : IDisposable
         
         WriteQueue = new BlockingCollection<Packet>();
         ShouldStop = false;
-        Player = new MinecraftPlayer();
     }
 
     public void InitEncryption(byte[] sharedSecret)
@@ -111,7 +113,7 @@ public class NetClient : IDisposable
             using (MinecraftStream ms = new MinecraftStream(ns))
             {
                 ReaderStream = ms;
-                while (true)
+                while (!ShouldStop)
                 {
                     var length = ms.ReadVarInt();
                     var packetId = ms.ReadVarInt();
@@ -134,7 +136,11 @@ public class NetClient : IDisposable
                     
                     packet.Read(new MinecraftStream(new MemoryStream(data)));
                     var args = new PacketReceivedArgs(packet);
-                    Logger.LogDebug($"Received: {packet.GetType()}");
+                    if (packet.ShouldLog)
+                    {
+                        Logger.LogDebug($"Received: {packet.GetType()}");
+                    }
+
                     OnPacketReceived?.Invoke(this, args);
                     Thread.Sleep(1);
                 }
@@ -175,6 +181,11 @@ public class NetClient : IDisposable
         if (resp != null) WriteQueue.Add(resp);
     }
 
+    public void QueuePacket(Packet packet)
+    {
+        WriteQueue.Add(packet);
+    }
+
     public void SendKnownPacks()
     {
         var packs = new Pack[] { new MinecraftCorePack(Server.Config["version"]) };
@@ -207,7 +218,11 @@ public class NetClient : IDisposable
             WriterStream = ms;
             while (!ShouldStop)
             {
-                var packet = WriteQueue.Take();
+                if (!WriteQueue.TryTake(out var packet))
+                {
+                    Task.Delay(10);
+                    continue;
+                }
                 var stream = new MemoryStream();
                 using (var st = new MinecraftStream(stream))
                 {
@@ -215,21 +230,56 @@ public class NetClient : IDisposable
                     packet.Write(st);
                 }
 
+                var arr = stream.ToArray();
                 #if DEBUG
                 var str = "";
-                foreach (var by in stream.GetBuffer())
+                foreach (var by in arr)
                 {
                     str += $"{by} ";
                 }
                 Logger.LogDebug(str);
                 #endif
-                
-                var arr = stream.ToArray();
                 ms.WriteVarInt(arr.Length);
                 ms.WriteByteArray(arr);
                 stream.Dispose();
             }
         }
+    }
+
+    public void LoadPlayer()
+    {
+        if (Player == null)
+        {
+            Disconnect();
+            return;
+        }
+
+        Server.AddEntity(Player);
+        var settings = WorldSettings.FromConfig(Server.Config);
+        Player.Join(settings);
+        Player.Teleport(new Vector3(-82.5f, 320.0f, -501.5f), Player.Velocity, Player.Rotation);    
+        
+        QueuePacket(new GameEvent(13, 0));
+        
+        // Fake chunk data
+
+        var playerChunkX = (int) Player.Position.X / 16;
+        var playerChunkZ = (int) Player.Position.Z / 16;
+        
+        
+        var width = 7 + (settings.ViewDistance * 2);
+        for (int x = -(int) Math.Ceiling(width / 2f); x < (int) Math.Floor(width / 2f); x++)
+        {
+            for (int z = -(int) Math.Ceiling(width / 2f); z < (int) Math.Floor(width / 2f); z++)
+            {
+                QueuePacket(new ChunkDataWithLight()
+                {
+                    ChunkX = playerChunkX + x,
+                    ChunkZ = playerChunkZ + z,
+                });
+            }
+        }
+        
     }
 
     public void Dispose()

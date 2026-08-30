@@ -1,4 +1,4 @@
-using blahaj.blahaj.Player;
+using blahaj.blahaj.Entities;
 
 namespace blahaj.blahaj.Network.Packets.Interfaces;
 

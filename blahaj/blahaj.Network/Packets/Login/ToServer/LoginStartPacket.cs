@@ -1,7 +1,7 @@
 using System.Security;
+using blahaj.blahaj.Entities;
 using blahaj.blahaj.Network.Packets.Interfaces;
 using blahaj.blahaj.Network.Packets.Login.ToClient;
-using blahaj.blahaj.Player;
 using blahaj.blahaj.Stream;
 
 namespace blahaj.blahaj.Network.Packets.Login.ToServer;
@@ -30,7 +30,7 @@ public class LoginStartPacket : Packet, IInvokableWithClient
 
     public Packet? Invoke()
     {
-       Client.Player = new MinecraftPlayer(Name, Uuid);
+       Client.Player = new MinecraftPlayer(Name, Uuid,  Client);
        var packet = new EncryptionRequestPacket("BlahajCSharpMeowPurr", true);
        Client.RandomToken = packet.VerifyToken;
        return packet;

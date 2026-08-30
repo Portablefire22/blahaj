@@ -2,10 +2,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using blahaj.blahaj.Crypto;
+using blahaj.blahaj.Entities;
 using blahaj.blahaj.Network.Packets.Interfaces;
 using blahaj.blahaj.Network.Packets.Login.ToClient;
 using blahaj.blahaj.Network.Packets.Login.ToClient.Json;
-using blahaj.blahaj.Player;
 using blahaj.blahaj.Stream;
 using Microsoft.Extensions.Logging;
 

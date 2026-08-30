@@ -25,6 +25,8 @@ public abstract class Packet
         Id = -1;
     }
 
+    public bool ShouldLog { get; protected set; } = true;
+    
     public abstract void Read(MinecraftStream stream);
 
     public abstract void Write(MinecraftStream stream);

@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -32,7 +33,10 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
     
     public void Dispose()
     {
-        Stream.Dispose();
+        try
+        {
+            Stream.Dispose();
+        } catch (Exception _) {}
     }
 
     public void WriteBool(bool val)
@@ -50,9 +54,10 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
         Stream.WriteByte(b);
     }
 
-    public short WriteShort()
+    public void WriteShort(short v)
     {
-        throw new NotImplementedException();
+        var x = BinaryPrimitives.ReverseEndianness(v);
+        Stream.Write(BitConverter.GetBytes(x));
     }
 
     public ushort WriteUnsignedShort()
@@ -62,22 +67,28 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
 
     public void WriteInt(int val)
     {
-        Stream.Write(BitConverter.GetBytes(val));
+        var x = BinaryPrimitives.ReverseEndianness(val);
+        Stream.Write(BitConverter.GetBytes(x));
     }
 
     public void WriteLong(long val)
     {
-        Stream.Write(BitConverter.GetBytes(val));
+        var x = BinaryPrimitives.ReverseEndianness(val);
+        Stream.Write(BitConverter.GetBytes(x));
     }
 
-    public float WriteFloat()
+    public void WriteFloat(float val)
     {
-        throw new NotImplementedException();
+        var x = new byte[4];
+        BinaryPrimitives.WriteSingleBigEndian(x, val);
+        Stream.Write(x);
     }
 
-    public double WriteDouble()
+    public void WriteDouble(double val)
     {
-        throw new NotImplementedException();
+        var x = new byte[8];
+        BinaryPrimitives.WriteDoubleBigEndian(x, val);
+        Stream.Write(x);
     }
 
     public void WriteString(string str)
@@ -279,13 +290,13 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
     public short ReadShort()
     {
         var dat = ReadByteArray(2);
-        return BitConverter.ToInt16(dat);
+        return BinaryPrimitives.ReverseEndianness(BitConverter.ToInt16(dat));
     }
 
     public ushort ReadUnsignedShort()
     {
         var dat = ReadByteArray(2);
-        return BitConverter.ToUInt16(dat);
+        return BinaryPrimitives.ReverseEndianness(BitConverter.ToUInt16(dat));
     }
 
     public int ReadInt()
@@ -296,17 +307,19 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
     public long ReadLong()
     {
         var dat = ReadByteArray(8);
-        return BitConverter.ToInt64(dat);
+        return BinaryPrimitives.ReverseEndianness(BitConverter.ToInt64(dat));
     }
 
     public float ReadFloat()
     {
-        throw new NotImplementedException();
+        var dat = ReadByteArray(4);
+        return BinaryPrimitives.ReadSingleBigEndian(dat);
     }
 
     public double ReadDouble()
     {
-        throw new NotImplementedException();
+        var dat = ReadByteArray(8);
+        return BinaryPrimitives.ReadDoubleBigEndian(dat);
     }
 
     public string ReadString()

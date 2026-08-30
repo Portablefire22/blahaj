@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using blahaj.blahaj.Entities;
 using blahaj.blahaj.Network.Events;
-using blahaj.blahaj.Player;
 using blahaj.blahaj.Registry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -17,11 +17,17 @@ public class NetServer : IDisposable
     public IConfigurationRoot Config { get; }
     private TcpListener Listener;
     private ConcurrentDictionary<EndPoint, NetClient> Connections;
+    
+    private ConcurrentDictionary<EndPoint, MinecraftPlayer> ConnectedPlayers = [];
+    
+    private ConcurrentDictionary<int, Entity> _entities = [];
+    
     public string Favicon { get; }
 
     public MinecraftPlayer[] Players
     {
-        get => Connections.Select(x => x.Value.Player).ToArray();
+        get => [.. Connections.Where(x => x.Value.Player != null)
+            .Select(x => x.Value.Player)!]!;
     }
 
     public NetServer()
@@ -79,7 +85,6 @@ public class NetServer : IDisposable
         netClient.Initialise();
     }
 
-    
     private void OnClientDisconnect(ConnectionClosedArgs args)
     {
         var endpoint = args.Connection.RemoteEndPoint;
@@ -90,6 +95,18 @@ public class NetServer : IDisposable
         }
     }
 
+    public int AddEntity(Entity entity)
+    {
+        var random = new Random();
+        var id = random.Next();
+        while (!_entities.TryAdd(id, entity))
+        {
+            id = random.Next();
+        }
+        entity.Id = id;
+        return id;
+    }
+    
     public void Dispose()
     {
         Listener.Dispose();

@@ -16,10 +16,8 @@ public class AcknowledgeFinishConfiguration : Packet, IInvokableWithClient, IInv
     public Packet? Invoke()
     {
         Client.ConnectionState = ConnectionState.Play;
-        var set = WorldSettings.FromConfig(Server.Config);
-        var packet = new LoginPacket(set, 1, "overworld", false, null, 
-            null, 0, 0);
-        return packet;
+        Client.LoadPlayer();
+        return null;
     }
 
     public NetClient Client { get; set; }

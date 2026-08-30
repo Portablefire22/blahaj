@@ -8,7 +8,7 @@ public class ClientTickEndPacket : Packet
 {
     public ClientTickEndPacket() : base(0xD)
     {
-        
+        ShouldLog = false;
     }
 
     public override void Read(MinecraftStream stream)

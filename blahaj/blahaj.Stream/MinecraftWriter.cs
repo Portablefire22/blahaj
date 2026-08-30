@@ -5,12 +5,12 @@ public interface MinecraftWriter
     public void WriteBool(bool val);
     public void WriteByte(sbyte b);
     public void WriteUnsignedByte(byte b);
-    public short WriteShort();
+    public void WriteShort(short val);
     public ushort WriteUnsignedShort();
     public void WriteInt(int val);
     public void WriteLong(long val);
-    public float WriteFloat();
-    public double WriteDouble();
+    public void WriteFloat(float val);
+    public void WriteDouble(double val);
     public void WriteString(string str);
     public object WriteTextComponent();
     public object WriteJsonTextComponent();
