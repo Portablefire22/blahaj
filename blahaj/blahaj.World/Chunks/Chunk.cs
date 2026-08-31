@@ -1,4 +1,5 @@
 using System.Numerics;
+using blahaj.blahaj.Network.Packets.Play.ToClient;
 
 namespace blahaj.blahaj.World.Chunks;
 
@@ -7,13 +8,17 @@ namespace blahaj.blahaj.World.Chunks;
 /// </summary>
 public class Chunk : IDisposable
 {
-    public byte[,,] Blocks { private get; set; }
+    public byte[,,] Blocks { get; set; }
     
     public Vector2 ChunkPosition { get; set; }
+    
+    public int WorldHeight { get; private set; }
 
     public Chunk(Vector2 chunkPosition, int worldHeight)
     {
         Blocks = new byte[16, 16, worldHeight];
+        ChunkPosition = chunkPosition;
+        WorldHeight = worldHeight;
     }
 
     public void Dispose()
@@ -25,4 +30,57 @@ public class Chunk : IDisposable
     {
         
     }
+
+    public ChunkSection[] Split()
+    {
+        var list = new List<ChunkSection>();
+
+        for (int section = 0; section < WorldHeight / 16; section++)
+        {
+            var chunkSection = new ChunkSection();
+            chunkSection.BlockStates.BitsPerEntry = 4;
+            chunkSection.BlockStates.Data = new byte[2048];
+            var palette = new List<byte>();
+            var left = true;
+
+            var i = 0; 
+            for (int y = 0; y < 16; y++)
+            {
+                for (int z = 0; z < 16; z++)
+                {
+                    for (int x = 0; x < 16; x++)
+                    {
+                        var block = Blocks[x, z, y + section * 16];
+                        if (!palette.Contains(block)) palette.Add(block);
+                       
+                        var index = (byte)palette.IndexOf(block);
+
+                        if (left)
+                        {
+                            chunkSection.BlockStates.Data[i] = (byte)(index << 4);
+                        }
+                        else
+                        {
+                            chunkSection.BlockStates.Data[i] |= index;
+                            i++;
+                        }
+                        left = !left;
+                        
+                    }
+                }
+            }
+            chunkSection.BlockStates.Palette = palette.ToArray();
+
+            if (palette.Count == 1)
+            {
+                chunkSection.BlockStates.BitsPerEntry = 0;
+                chunkSection.BlockStates.Data = null;
+                chunkSection.BlockStates.Palette = [palette.Last()];
+            }
+            
+            list.Add(chunkSection);
+        }
+        return [.. list];
+    }
+    
 }

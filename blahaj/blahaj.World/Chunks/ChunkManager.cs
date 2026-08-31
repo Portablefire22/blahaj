@@ -45,15 +45,15 @@ public class ChunkManager
         return LoadedChunks.TryGetValue(new KeyValuePair<int, int>(x,z),  out var chunk) ? chunk : GenerateChunk(x, z);
     }
 
-    public Chunk LoadChunk(KeyValuePair<int, int> pos)
+    public bool LoadChunk(KeyValuePair<int, int> pos, out Chunk chunk)
     {
-        if (LoadedChunks.TryGetValue(pos, out var chunk)) return chunk;
+        if (LoadedChunks.TryGetValue(pos, out chunk)) return false;
         chunk = GenerateChunk(pos);
         LoadedChunks.TryAdd(pos, chunk);
-        return chunk;
+        return true;
     }
     
-    public Chunk LoadChunk(int x, int z) =>  LoadChunk(new KeyValuePair<int, int>(x, z));
+    public bool LoadChunk(int x, int z, out Chunk chunk) =>  LoadChunk(new KeyValuePair<int, int>(x, z), out chunk);
 
     private Chunk GenerateChunk(KeyValuePair<int, int> pos) => ChunkGenerator.Generate(pos);
     private Chunk GenerateChunk(int x, int z) => ChunkGenerator.Generate(x, z);

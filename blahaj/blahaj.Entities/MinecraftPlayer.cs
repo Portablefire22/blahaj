@@ -36,7 +36,7 @@ public class MinecraftPlayer : Entity
    
     public bool IgnoreMovement { get; set; } = false;
     
-    private Task KeepAliveTask { get; set; }
+    private Thread KeepAliveTask { get; set; }
 
     private long LastKeepAliveId { get; set; } = 0;
     private long LastReceivedKeepAliveId { get; set; } = 0;
@@ -67,12 +67,12 @@ public class MinecraftPlayer : Entity
     {
         base.OnSpawn();
         
-        Teleport(new Vector3(-82.5f, 320.0f, -501.5f), Velocity, Rotation);    
+        Teleport(new Vector3(-82.5f, 72.0f, -501.5f), Velocity, Rotation);    
         
         QueuePacket(new GameEvent(13, 0));
     }
 
-    private async void KeepAlive()
+    private void KeepAlive()
     {
         Connected = true;
         while (Connected)
@@ -88,7 +88,7 @@ public class MinecraftPlayer : Entity
             var x = new KeepAlive(id);
             QueuePacket(x);
             LastKeepAliveId = id;
-            await Task.Delay(5000);
+            Thread.Sleep(5000);
         }
         // Task will be immediately collected without
         GC.KeepAlive(KeepAliveTask);
@@ -128,7 +128,7 @@ public class MinecraftPlayer : Entity
             Connected = false;
         };
         
-        KeepAliveTask = new Task(KeepAlive);
+        KeepAliveTask = new Thread(KeepAlive);
         KeepAliveTask.Start();
     }
 

@@ -12,7 +12,27 @@ public class OverworldChunkGenerator : ChunkGenerator
     {
 
         var blocks = new byte[16, 16, 384];
+        var random = new Random();
 
+        for (int y = 0; y < 384; y++)
+        {
+            for (int z = 0; z < 16; z++)
+            {
+                for (int x = 0; x < 16; x++)
+                {
+                    if (y == 125)
+                    {
+                        blocks[x, z, y] = (byte)(9);
+                    }
+                    else
+                    {
+                        blocks[x, z, y] = (byte)(0);
+                    }
+                }
+            }
+        }
+
+        /*
         for (int i = 0; i < 16 * 16 * 384; i++)
         {
             if (i / 256f < 1f)
@@ -21,9 +41,9 @@ public class OverworldChunkGenerator : ChunkGenerator
             }
             else
             {
-                blocks[i / 16, i % 16, 1] = 0;
+                blocks[(i / 15) % 15, i % 15, 1] = 0;
             }
-        }
+        }*/
         
         var chunk = new Chunk(new Vector2(pos.Key, pos.Value), 384)
         {

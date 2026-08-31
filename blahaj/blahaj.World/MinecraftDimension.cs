@@ -121,12 +121,12 @@ public class MinecraftDimension
                 AddEntity((Entity)action.Data);
                 break;
             case ActionType.LoadChunk:
-                var chunk = ChunkManager.LoadChunk((KeyValuePair<int, int>)action.Data);
+                if (!ChunkManager.LoadChunk((KeyValuePair<int, int>)action.Data, out var chunk)) break;
+                var data = new ChunkDataWithLight(chunk);
                 foreach (var player in _players)
                 {
-                    if (Vector2.Distance(player.ChunkPosition, chunk.ChunkPosition) > 10) continue;
-                    
-                    player.QueuePacket(new ChunkDataWithLight((int) player.ChunkPosition.X, (int) player.ChunkPosition.Y));
+                    //if (Vector2.Distance(player.ChunkPosition, chunk.ChunkPosition) > 10) continue;
+                    player.QueuePacket(data);
                 }
                 break;
             default:
@@ -146,7 +146,7 @@ public class MinecraftDimension
         {
             for (int z = -(int) Math.Ceiling(width / 2f); z < (int) Math.Floor(width / 2f); z++)
             {
-                player.QueuePacket(new ChunkDataWithLight((int)(args.ChunkPos.X + x), (int)(args.ChunkPos.Y + z)) );
+                QueueAction(new WorldAction(ActionType.LoadChunk, new KeyValuePair<int, int>((int)(args.ChunkPos.X + x), (int)(args.ChunkPos.Y + z))));
             }
         }
     }

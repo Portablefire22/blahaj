@@ -1,19 +1,17 @@
 using blahaj.blahaj.Stream;
+using blahaj.blahaj.World.Chunks;
 
 namespace blahaj.blahaj.Network.Packets.Play.ToClient;
 
 public class ChunkDataWithLight : Packet
 {
-    public ChunkDataWithLight(int chunkX, int chunkZ) : base(0x2d)
+    public ChunkDataWithLight(Chunk chunk) : base(0x2d)
     {
-        ChunkZ =  chunkZ;
-        ChunkX = chunkX;
-        for (int i = 0; i < 24; i++)
-        {
-            var chunk = new ChunkSection();
-                chunk.BlockStates[0].Palette = [(byte)1];
-            ChunkSections[i] = chunk;
-        }
+        ChunkX =  (int)chunk.ChunkPosition.X;
+        ChunkZ = (int)chunk.ChunkPosition.Y;
+        ChunkSections = chunk.Split();
+
+        ShouldLog = false;
     }
     
     public int ChunkX { get; set; }
@@ -69,31 +67,21 @@ public class ChunkSection
 {
     public short BlockCount { get; set; } = 4096;
     public short FluidCount { get; set; } = 0;
-    public PalettedContainer[] BlockStates { get; set; } = new []
-    {
-        new PalettedContainer()
-    };
-    public PalettedContainer[] Biomes { get; set; } = new []
-    {
+    public PalettedContainer BlockStates { get; set; } = new PalettedContainer();
+    public PalettedContainer Biomes { get; set; } =
         new PalettedContainer()
         {
             BitsPerEntry = 0,
-            Palette = [0x0]
-        }
-    };
+            Palette = [0],
+            Data = null//[0xCCFFCCFFCCFFCCFF]
+        };
 
     public void Write(MinecraftStream writer)
     {
         writer.WriteShort(BlockCount);
         writer.WriteShort(FluidCount);
-        foreach (var block in BlockStates)
-        {
-           block.Write(writer); 
-        }
-        foreach (var biome in Biomes)
-        {
-            biome.Write(writer);
-        }
+        BlockStates.Write(writer); 
+        Biomes.Write(writer);
     }
 }
 
@@ -101,7 +89,7 @@ public class PalettedContainer
 {
     public byte BitsPerEntry { get; set; } = 0;
     public byte[] Palette { get; set; } = [1];
-    public ulong? Data { get; set; } = null;
+    public byte[] Data { get; set; } = null;
 
     public void Write(MinecraftStream writer)
     {
@@ -118,7 +106,10 @@ public class PalettedContainer
 
         if (Data != null)
         {
-            writer.WriteLong((long)Data.Value);
+            foreach (var val in Data)
+            {
+                writer.WriteUnsignedByte(val);
+            }
         }
     }
 }

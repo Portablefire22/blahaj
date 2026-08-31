@@ -48,8 +48,8 @@ public class NetClient : IDisposable
     public EventHandler<ConnectionClosedArgs>? OnConnectionClosed { get; set; }
     public EventHandler<PacketReceivedArgs>? OnPacketReceived { get; set; }
 
-    private Task NetworkReading { get; set; }
-    private Task NetworkWriting { get; set; }
+    private Thread NetworkReading { get; set; }
+    private Thread NetworkWriting { get; set; }
 
     private BlockingCollection<Packet> WriteQueue { get; }
 
@@ -95,9 +95,9 @@ public class NetClient : IDisposable
 
     public void Initialise()
     {
-        NetworkReading = new Task(ReadStream);
+        NetworkReading = new Thread(ReadStream);
         NetworkReading.Start();
-        NetworkWriting = new Task(WriteStream);
+        NetworkWriting = new Thread(WriteStream);
         NetworkWriting.Start();
     }
 
@@ -145,7 +145,7 @@ public class NetClient : IDisposable
                     }
 
                     OnPacketReceived?.Invoke(this, args);
-                    Task.Delay(1).Wait();
+                    Thread.Sleep(1);
                 }
             }
         }
@@ -215,37 +215,51 @@ public class NetClient : IDisposable
 
     private void WriteStream()
     {
-        using NetworkStream ns = TcpClient.GetStream();
-        using (MinecraftStream ms = new MinecraftStream(ns))
+        try
         {
-            WriterStream = ms;
-            while (!ShouldStop)
+            using NetworkStream ns = TcpClient.GetStream();
+            using (MinecraftStream ms = new MinecraftStream(ns))
             {
-                if (!WriteQueue.TryTake(out var packet))
+                WriterStream = ms;
+                while (!ShouldStop)
                 {
-                    Task.Delay(10).Wait();
-                    continue;
-                }
-                var stream = new MemoryStream();
-                using (var st = new MinecraftStream(stream))
-                {
-                    st.WriteVarInt(packet.WriteId);
-                    packet.Write(st);
-                }
+                    if (!WriteQueue.TryTake(out var packet))
+                    {
+                        //Thread.Sleep(1);
+                        continue;
+                    }
 
-                var arr = stream.ToArray();
-                #if DEBUG
-                var str = "";
-                foreach (var by in arr)
-                {
-                    str += $"{by} ";
+                    var stream = new MemoryStream();
+                    using (var st = new MinecraftStream(stream))
+                    {
+                        st.WriteVarInt(packet.WriteId);
+                        packet.Write(st);
+                    }
+
+                    var arr = stream.ToArray();
+#if DEBUG
+                    // Sufficiently big packets can break the server
+                    // with string allocations
+                    if (packet.ShouldLog)
+                    {
+                        var str = "";
+                        foreach (var by in arr)
+                        {
+                            str += $"{by} ";
+                        }
+
+                        Logger.LogDebug(str);
+                    }
+#endif
+                    ms.WriteVarInt(arr.Length);
+                    ms.WriteByteArray(arr);
+                    stream.Dispose();
                 }
-                Logger.LogDebug(str);
-                #endif
-                ms.WriteVarInt(arr.Length);
-                ms.WriteByteArray(arr);
-                stream.Dispose();
             }
+        }
+        catch (Exception e)
+        {
+            Disconnect();
         }
     }
 
