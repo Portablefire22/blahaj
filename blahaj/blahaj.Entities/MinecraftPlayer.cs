@@ -4,6 +4,7 @@ using blahaj.blahaj.Network.Events;
 using blahaj.blahaj.Network.Packets;
 using blahaj.blahaj.Network.Packets.Configuration.ToServer;
 using blahaj.blahaj.Network.Packets.Login.ToClient;
+using blahaj.blahaj.Network.Packets.Play.PlayerInfo;
 using blahaj.blahaj.Network.Packets.Play.ToClient;
 using blahaj.blahaj.Network.Packets.Status.ToClient.Json;
 using blahaj.blahaj.World;
@@ -14,9 +15,15 @@ namespace blahaj.blahaj.Entities;
 public class MinecraftPlayer : Entity
 {
     public string Name { get; set; } = "";
-    public Guid? Uuid { get; set; }
+
+    private Guid _providedUuid;
+
+    public Guid? Uuid => GameProfile?.Uuid ?? _providedUuid;
+
     public Guid SessionId { get; private set; } = Guid.NewGuid();
    
+    public GameProfile? GameProfile { get; set; }
+    
     private NetClient NetClient { get; set; }
     
     public ClientInformationPacket ClientInformation { get; set; }
@@ -36,9 +43,12 @@ public class MinecraftPlayer : Entity
     
     public MinecraftPlayer(string name, Guid uuid, NetClient netClient)
     {
+        Type = 156; 
+        
         Name = name;
-        Uuid = uuid;
+        _providedUuid = uuid;
         NetClient = netClient;
+        Metadata = new PlayerMetadata();
         
         using ILoggerFactory factory = LoggerFactory.Create(build => build
 #if DEBUG
@@ -68,6 +78,8 @@ public class MinecraftPlayer : Entity
             LastKeepAliveId = id;
             Task.Delay(5000).Wait();
         }
+        // Task will be immediately collected without
+        GC.KeepAlive(KeepAliveTask);
     }
 
     public void UpdateKeepAlive(long keepAliveId)
@@ -85,7 +97,7 @@ public class MinecraftPlayer : Entity
         return new StatusPlayer(Name, Uuid.ToString());
     }
 
-    private void QueuePacket(Packet packet)
+    public void QueuePacket(Packet packet)
     {
         NetClient.QueuePacket(packet);
     }
@@ -96,7 +108,13 @@ public class MinecraftPlayer : Entity
         QueuePacket(x);
         Connected = true;
         
-        NetClient.OnConnectionClosed += (object sender, ConnectionClosedArgs args) => Connected = false;
+        NetClient.Server.OnPlayerConnected.Invoke(this, new PlayerConnectedArgs(this));
+        
+        NetClient.OnConnectionClosed += (object sender, ConnectionClosedArgs args) =>
+        {
+            Logger.LogInformation($"Disconnected");
+            Connected = false;
+        };
         
         KeepAliveTask = new Task(KeepAlive);
         KeepAliveTask.Start();
@@ -106,6 +124,8 @@ public class MinecraftPlayer : Entity
     {
         SetPosition(position ?? Position, velocity ?? Velocity, rotation ?? Rotation);
     }
+
+
     
     private void SetPosition(Vector3 position, Vector3 velocity, Vector2 rotation)
     {

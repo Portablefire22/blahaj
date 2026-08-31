@@ -1,4 +1,5 @@
 using blahaj.blahaj.Network.Packets.Login.ToClient.Json;
+using blahaj.blahaj.Network.Packets.Play.PlayerInfo;
 using blahaj.blahaj.Stream;
 
 namespace blahaj.blahaj.Network.Packets.Login.ToClient;
@@ -10,7 +11,7 @@ public class LoginSuccessPacket : Packet
     public Guid Uuid { get; private set; }
     public string Username { get; private set; }
     public Guid SessionId { get; private set; }
-    public LoginSuccessProperties[] Properties { get; private set; }
+    public GameProfileProperties[] Properties { get; private set; }
 
     public LoginSuccessPacket() : base(0x02)
     {
@@ -35,7 +36,7 @@ public class LoginSuccessPacket : Packet
         stream.WriteString(Username);
         using var ms = new MemoryStream();
         using var mine = new MinecraftStream(ms);
-        Properties = new LoginSuccessProperties[] { };
+        Properties = new GameProfileProperties[] { };
         foreach (var property in Properties)
         {
             mine.WriteString(property.Name);
@@ -47,11 +48,4 @@ public class LoginSuccessPacket : Packet
         stream.WriteByteArray(dat);
         stream.WriteUuid(SessionId);
     }
-}
-
-public class LoginSuccessProperties
-{
-    public string Name { get; set; }
-    public string Value { get; set; }
-    public string? Signature { get; set; }
 }

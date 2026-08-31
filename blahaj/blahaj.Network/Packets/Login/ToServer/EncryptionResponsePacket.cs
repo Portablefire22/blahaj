@@ -76,6 +76,8 @@ public class EncryptionResponsePacket : Packet, IInvokableWithClient, IInvokable
             }
             Logger.LogInformation("Authentication Successful");
         }
+
+        Player.GameProfile = json.ToProfile();
         Client.InitEncryption(SharedSecret);
         return new LoginSuccessPacket(json, Player.SessionId);
     }

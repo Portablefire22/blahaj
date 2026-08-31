@@ -2,6 +2,7 @@ using System.Security;
 using blahaj.blahaj.Entities;
 using blahaj.blahaj.Network.Packets.Interfaces;
 using blahaj.blahaj.Network.Packets.Login.ToClient;
+using blahaj.blahaj.Network.Packets.Play.PlayerInfo;
 using blahaj.blahaj.Stream;
 
 namespace blahaj.blahaj.Network.Packets.Login.ToServer;
@@ -37,4 +38,7 @@ public class LoginStartPacket : Packet, IInvokableWithClient
     }
 
     public NetClient Client { get; set; }
+
+
+    
 }

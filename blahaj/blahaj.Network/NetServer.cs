@@ -1,8 +1,11 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json;
 using blahaj.blahaj.Entities;
 using blahaj.blahaj.Network.Events;
+using blahaj.blahaj.Network.Packets.Play.PlayerInfo;
+using blahaj.blahaj.Network.Packets.Play.ToClient;
 using blahaj.blahaj.Registry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -18,9 +21,11 @@ public class NetServer : IDisposable
     private TcpListener Listener;
     private ConcurrentDictionary<EndPoint, NetClient> Connections;
     
-    private ConcurrentDictionary<EndPoint, MinecraftPlayer> ConnectedPlayers = [];
+    private List<MinecraftPlayer> ConnectedPlayers = [];
     
     private ConcurrentDictionary<int, Entity> _entities = [];
+    
+    public EventHandler<PlayerConnectedArgs> OnPlayerConnected;
     
     public string Favicon { get; }
 
@@ -55,6 +60,8 @@ public class NetServer : IDisposable
                 Favicon = Convert.ToBase64String(imageBytes);
             }
         }
+
+        OnPlayerConnected = OnPlayerConnection;
     }
     public void Run()
     {
@@ -66,6 +73,59 @@ public class NetServer : IDisposable
         Listener.BeginAcceptTcpClient(ConnectionCallback, null);
     }
 
+    private async void OnPlayerConnection(object? sender, PlayerConnectedArgs args)
+    {
+        ConnectedPlayers.Add(args.Player);
+        if (args.Player.GameProfile == null) return;
+        
+        // Inform everyone of the new player
+        var info = new AddPlayerInfoAction()
+        {
+            Name = args.Player.Name,
+            Properties    = args.Player.GameProfile.Properties,
+        };
+
+        var packet = new PlayerInfoUpdate()
+        {
+            Players = [new KeyValuePair<Guid, IPlayerInfoAction[]>((Guid)args.Player.Uuid, [
+                info, 
+                        new UpdateListedPlayerAction()
+                ])
+            ],
+            Action = 0x01 | 0x08
+        };
+        foreach (var player in ConnectedPlayers)
+        {
+            player.QueuePacket(packet);
+        }
+    
+        // Inform connecting player of everyone on the server
+        foreach (var player in ConnectedPlayers)
+        {
+            if (player == args.Player) continue;
+            
+            if (args.Player.GameProfile == null) return;
+            info = new AddPlayerInfoAction()
+            {
+                Name = args.Player.Name,
+                Properties    = args.Player.GameProfile.Properties,
+            };
+
+            packet = new PlayerInfoUpdate()
+            {
+                Players = [new KeyValuePair<Guid, IPlayerInfoAction[]>((Guid)args.Player.Uuid, [
+                        info, 
+                        new UpdateListedPlayerAction()
+                    ])
+                ],
+                Action = 0x01 | 0x08
+            };
+            args.Player.QueuePacket(packet);
+        }
+        
+        SpawnEntityForPlayers(args.Player, true);
+    }
+    
     private void ConnectionCallback(IAsyncResult ar)
     {
 
@@ -104,7 +164,42 @@ public class NetServer : IDisposable
             id = random.Next();
         }
         entity.Id = id;
+        entity.Server = this; 
+        SpawnEntityForPlayers(entity); 
+        
         return id;
+    }
+
+    public void UpdateEntityMetadata(Entity entity)
+    {
+        var packet = new SetEntityData(entity.Id, entity.Metadata);
+        foreach (var player in ConnectedPlayers)
+        {
+            player.QueuePacket(packet);
+        }
+    }
+    
+
+    public void SpawnEntityForPlayers(Entity entity, bool checkLocal = false)
+    {
+        foreach (var player in ConnectedPlayers)
+        {
+            if (checkLocal && entity is MinecraftPlayer playerEntity && playerEntity.Id == player.Id)
+            {
+                continue;
+            }
+            player.QueuePacket(new AddEntity(entity));
+        }
+        UpdateEntityMetadata(entity);
+    }
+    
+    public void SpawnEntitiesForPlayer(MinecraftPlayer player)
+    {
+        foreach (var (id, entity) in _entities)
+        {
+            player.QueuePacket(new AddEntity(entity));
+            UpdateEntityMetadata(entity);
+        }
     }
     
     public void Dispose()

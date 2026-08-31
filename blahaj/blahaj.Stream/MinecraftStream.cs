@@ -204,7 +204,44 @@ public class MinecraftStream : IDisposable,MinecraftWriter, MinecraftReader
             WriteByte((sbyte)item);
         }
     }
+    private static readonly double MAX_QUANTIZED_VALUE = 32766.0;
+    private static readonly long CONTINUATION_FLAG = 0x04L;
+    private static readonly long SCALE_BITS = 0x03L;
+    
+    public void WriteLpVec3(Vector3 vec3)
+    {
+        double maxCoordinate = MathF.Max(MathF.Abs(vec3.X), MathF.Max(Math.Abs(vec3.Y), MathF.Abs(vec3.Z)));
+    
+        // Checking for NaN values in our maxCoordinate
+        if (Double.IsNaN(maxCoordinate) || maxCoordinate < 1.0d / MAX_QUANTIZED_VALUE) {
+            WriteByte(0);
+        } else {
+            long scaleFactor = (long) Math.Ceiling(maxCoordinate); 
+            bool needContinuation = (scaleFactor & SCALE_BITS) != scaleFactor;
+        
+            long packedScale = needContinuation ? scaleFactor & SCALE_BITS | CONTINUATION_FLAG : scaleFactor;
+            long packedX = pack(vec3.X / (double)scaleFactor) << 3;
+            long packedY = pack(vec3.Y / (double)scaleFactor) << 18;
+            long packedZ = pack(vec3.Z / (double)scaleFactor) << 33;
+            long packed = packedZ | packedY | packedX | packedScale;
+        
+            WriteUnsignedByte((byte)packed);
+            WriteUnsignedByte((byte)(packed >> 8));
+            WriteInt((int)(packed >> 16));
+            if (needContinuation) {
+                WriteVarInt((int)(scaleFactor >> 2));
+            }
+        }
+    }
+    
+    private static long pack(double value) {
+        return (long)Math.Round((value * 0.5 + 0.5) * MAX_QUANTIZED_VALUE);
+    }
 
+    private static double unpack(long value) {
+        return Math.Min((double)(value & 32767L), MAX_QUANTIZED_VALUE) * 2.0 / MAX_QUANTIZED_VALUE - 1.0;
+    }
+    
     public T WriteEnum<T>()
     {
         throw new NotImplementedException();
