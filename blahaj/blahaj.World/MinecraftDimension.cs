@@ -19,7 +19,7 @@ namespace blahaj.blahaj.World;
 /// </summary>
 public class MinecraftDimension
 {
-    public MinecraftDimension(NetServer server, MinecraftWorld world, string identifier, long seed)
+    public MinecraftDimension(NetServer server, MinecraftWorld world, string identifier, int seed)
     {
         Logger = LoggingProvider.NewLogger($"blahaj.blahaj.World.{identifier}");
 

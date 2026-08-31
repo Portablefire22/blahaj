@@ -4,23 +4,26 @@ namespace blahaj.blahaj.World.Chunks;
 
 public abstract class ChunkGenerator
 {
-    protected ChunkGenerator(long seed)
+    protected ChunkGenerator(int seed)
     {
         Seed = seed;
     }
 
-    public long Seed { get; }
+    public int Seed { get; }
 
     public Chunk Generate(int x, int z) => Generate(new KeyValuePair<int, int>(x, z));
     public abstract Chunk Generate(KeyValuePair<int, int> pos);
     
     
-    public static ChunkGenerator FromIdentifier(string identifer, long seed)
+    public static ChunkGenerator FromIdentifier(string identifer, int seed)
     {
         switch (identifer)
         {
-            default:
+            case "minecraft:overworld":
                 return new OverworldChunkGenerator(seed);
+                break;
+            default:
+                return new DebugChunkGenerator(seed);
         }
     }
 }

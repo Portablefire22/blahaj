@@ -88,7 +88,7 @@ public class ChunkSection
 public class PalettedContainer
 {
     public byte BitsPerEntry { get; set; } = 0;
-    public byte[] Palette { get; set; } = [1];
+    public int[] Palette { get; set; } = [1];
     public byte[] Data { get; set; } = null;
 
     public void Write(MinecraftStream writer)
@@ -101,7 +101,7 @@ public class PalettedContainer
 
         foreach (var palette in Palette)
         {
-            writer.WriteUnsignedByte(palette);
+            writer.WriteVarInt(palette);
         }
 
         if (Data != null)

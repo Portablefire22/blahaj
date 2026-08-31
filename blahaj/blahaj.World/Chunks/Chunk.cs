@@ -8,7 +8,7 @@ namespace blahaj.blahaj.World.Chunks;
 /// </summary>
 public class Chunk : IDisposable
 {
-    public byte[,,] Blocks { get; set; }
+    public int[,,] Blocks { get; set; }
     
     public Vector2 ChunkPosition { get; set; }
     
@@ -16,7 +16,7 @@ public class Chunk : IDisposable
 
     public Chunk(Vector2 chunkPosition, int worldHeight)
     {
-        Blocks = new byte[16, 16, worldHeight];
+        Blocks = new int[16, 16, worldHeight];
         ChunkPosition = chunkPosition;
         WorldHeight = worldHeight;
     }
@@ -40,7 +40,7 @@ public class Chunk : IDisposable
             var chunkSection = new ChunkSection();
             chunkSection.BlockStates.BitsPerEntry = 4;
             chunkSection.BlockStates.Data = new byte[2048];
-            var palette = new List<byte>();
+            var palette = new List<int>();
             var left = true;
 
             var i = 0; 
