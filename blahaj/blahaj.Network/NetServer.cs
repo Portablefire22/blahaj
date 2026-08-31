@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Numerics;
 using System.Text.Json;
 using blahaj.blahaj.Entities;
 using blahaj.blahaj.Network.Events;
@@ -124,6 +125,8 @@ public class NetServer : IDisposable
         }
         
         SpawnEntityForPlayers(args.Player, true);
+        
+        AddEntity(new Entity(new Vector3(-82.5f, 320f, -501.5f), 54));
     }
     
     private void ConnectionCallback(IAsyncResult ar)

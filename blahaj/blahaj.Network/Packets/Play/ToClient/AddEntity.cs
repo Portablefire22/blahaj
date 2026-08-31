@@ -12,6 +12,13 @@ public class AddEntity : Packet
 
     public AddEntity(Entity entity) : this()
     {
+        EntityId = entity.Id;
+        EntityGuid = entity.EntityGuid;
+        Type = entity.Type;
+        Position = entity.Position;
+        Velocity = entity.Velocity;
+        Rotation = entity.Rotation;
+         
     }
 
     public int EntityId { get; set; } = 0;
@@ -19,7 +26,9 @@ public class AddEntity : Packet
     public int Type { get; set; } = 0;
     public Vector3 Position { get; set; } = Vector3.Zero;
     public Vector3 Velocity { get; set; } = Vector3.Zero;
-    public Vector3 Rotation { get; set; } = Vector3.Zero;
+    public Vector2 Rotation { get; set; } = Vector2.Zero;
+
+    public double HeadPitch { get; set; } = 0f;
     
     public int Data { get; set; }
     
@@ -41,7 +50,7 @@ public class AddEntity : Packet
         stream.WriteLpVec3(Velocity);
         stream.WriteUnsignedByte((byte)((Rotation.X / 180f) * 256));
         stream.WriteUnsignedByte((byte)((Rotation.Y / 180f) * 256));
-        stream.WriteUnsignedByte((byte)((Rotation.Z / 180f) * 256));
+        stream.WriteUnsignedByte((byte)((HeadPitch / 180f) * 256));
         stream.WriteVarInt(Data);
     }
 }
