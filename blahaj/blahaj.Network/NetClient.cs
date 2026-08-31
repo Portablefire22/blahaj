@@ -27,6 +27,9 @@ public class NetClient : IDisposable
     public EndPoint? RemoteEndPoint { get; protected set;  }
 
     public MinecraftPlayer? Player { get; set; }
+
+    public MinecraftWorld MinecraftWorld => Server.World;
+    
     
     public bool UseCompression = false;
 
@@ -254,31 +257,25 @@ public class NetClient : IDisposable
             return;
         }
 
-        Server.AddEntity(Player);
-        var settings = WorldSettings.FromConfig(Server.Config);
-        Player.Join(settings);
-        Player.Teleport(new Vector3(-82.5f, 320.0f, -501.5f), Player.Velocity, Player.Rotation);    
-        
-        QueuePacket(new GameEvent(13, 0));
-        
+        Player.Join(MinecraftWorld, MinecraftWorld.Dimensions[0]);
+
+        /*
         // Fake chunk data
 
         var playerChunkX = (int) Player.Position.X / 16;
         var playerChunkZ = (int) Player.Position.Z / 16;
         
         
+        var settings = WorldSettings.FromConfig(Server.Config);
         var width = 7 + (settings.ViewDistance * 2);
         for (int x = -(int) Math.Ceiling(width / 2f); x < (int) Math.Floor(width / 2f); x++)
         {
             for (int z = -(int) Math.Ceiling(width / 2f); z < (int) Math.Floor(width / 2f); z++)
             {
-                QueuePacket(new ChunkDataWithLight()
-                {
-                    ChunkX = playerChunkX + x,
-                    ChunkZ = playerChunkZ + z,
-                });
+                QueuePacket(new ChunkDataWithLight(playerChunkX + x, playerChunkZ + z) );
             }
         }
+        */
         
     }
 

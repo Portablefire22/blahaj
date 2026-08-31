@@ -8,6 +8,7 @@ using blahaj.blahaj.Network.Events;
 using blahaj.blahaj.Network.Packets.Play.PlayerInfo;
 using blahaj.blahaj.Network.Packets.Play.ToClient;
 using blahaj.blahaj.Registry;
+using blahaj.blahaj.World;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
@@ -24,9 +25,10 @@ public class NetServer : IDisposable
     
     private List<MinecraftPlayer> ConnectedPlayers = [];
     
-    private ConcurrentDictionary<int, Entity> _entities = [];
-    
     public EventHandler<PlayerConnectedArgs> OnPlayerConnected;
+   
+    public MinecraftWorld World { get; }
+    
     
     public string Favicon { get; }
 
@@ -62,11 +64,15 @@ public class NetServer : IDisposable
             }
         }
 
+        World = new MinecraftWorld(this, WorldSettings.FromConfig(Config));
+        
         OnPlayerConnected = OnPlayerConnection;
     }
     public void Run()
     {
         RegistryController.Initialise();
+       
+        World.Start();
         
         var ipEndPoint = new IPEndPoint(IPAddress.Parse(Config["ip"]), int.Parse(Config["port"]));
         Listener = new TcpListener(ipEndPoint);
@@ -123,10 +129,6 @@ public class NetServer : IDisposable
             };
             args.Player.QueuePacket(packet);
         }
-        
-        SpawnEntityForPlayers(args.Player, true);
-        
-        AddEntity(new Entity(new Vector3(-82.5f, 320f, -501.5f), 54));
     }
     
     private void ConnectionCallback(IAsyncResult ar)
@@ -158,53 +160,6 @@ public class NetServer : IDisposable
         }
     }
 
-    public int AddEntity(Entity entity)
-    {
-        var random = new Random();
-        var id = random.Next();
-        while (!_entities.TryAdd(id, entity))
-        {
-            id = random.Next();
-        }
-        entity.Id = id;
-        entity.Server = this; 
-        SpawnEntityForPlayers(entity); 
-        
-        return id;
-    }
-
-    public void UpdateEntityMetadata(Entity entity)
-    {
-        var packet = new SetEntityData(entity.Id, entity.Metadata);
-        foreach (var player in ConnectedPlayers)
-        {
-            player.QueuePacket(packet);
-        }
-    }
-    
-
-    public void SpawnEntityForPlayers(Entity entity, bool checkLocal = false)
-    {
-        foreach (var player in ConnectedPlayers)
-        {
-            if (checkLocal && entity is MinecraftPlayer playerEntity && playerEntity.Id == player.Id)
-            {
-                continue;
-            }
-            player.QueuePacket(new AddEntity(entity));
-        }
-        UpdateEntityMetadata(entity);
-    }
-    
-    public void SpawnEntitiesForPlayer(MinecraftPlayer player)
-    {
-        foreach (var (id, entity) in _entities)
-        {
-            player.QueuePacket(new AddEntity(entity));
-            UpdateEntityMetadata(entity);
-        }
-    }
-    
     public void Dispose()
     {
         Listener.Dispose();

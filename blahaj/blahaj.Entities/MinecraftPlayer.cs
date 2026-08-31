@@ -1,4 +1,5 @@
 using System.Numerics;
+using blahaj.blahaj.Entities.Events;
 using blahaj.blahaj.Network;
 using blahaj.blahaj.Network.Events;
 using blahaj.blahaj.Network.Packets;
@@ -8,6 +9,7 @@ using blahaj.blahaj.Network.Packets.Play.PlayerInfo;
 using blahaj.blahaj.Network.Packets.Play.ToClient;
 using blahaj.blahaj.Network.Packets.Status.ToClient.Json;
 using blahaj.blahaj.World;
+using blahaj.blahaj.World.Actions;
 using Microsoft.Extensions.Logging;
 
 namespace blahaj.blahaj.Entities;
@@ -38,6 +40,7 @@ public class MinecraftPlayer : Entity
 
     private long LastKeepAliveId { get; set; } = 0;
     private long LastReceivedKeepAliveId { get; set; } = 0;
+
     
     private ILogger Logger { get; set; }
     
@@ -56,9 +59,19 @@ public class MinecraftPlayer : Entity
 #endif
             .AddConsole());
         Logger = factory.CreateLogger($"Player.{name}");
-        
+
+        ChunkPosChanged += OnChunkPositionChanged;
     }
-    
+
+    public override void OnSpawn()
+    {
+        base.OnSpawn();
+        
+        Teleport(new Vector3(-82.5f, 320.0f, -501.5f), Velocity, Rotation);    
+        
+        QueuePacket(new GameEvent(13, 0));
+    }
+
     private async void KeepAlive()
     {
         Connected = true;
@@ -101,10 +114,11 @@ public class MinecraftPlayer : Entity
         NetClient.QueuePacket(packet);
     }
 
-    public void Join(WorldSettings settings)
+    public void Join(MinecraftWorld world, MinecraftDimension dimension)
     {
-        var x = new LoginPacket(settings, Id, "overworld", false, null, null, 0, 1);
-        QueuePacket(x);
+        Dimension = dimension;
+        
+        Dimension.QueueAction(new WorldAction(ActionType.AddEntity, this));
         
         NetClient.Server.OnPlayerConnected.Invoke(this, new PlayerConnectedArgs(this));
         
@@ -118,34 +132,18 @@ public class MinecraftPlayer : Entity
         KeepAliveTask.Start();
     }
 
-    public void SetPosition(Vector3? position = null, Vector3?  velocity = null, Vector2? rotation = null)
+    public void OnChunkPositionChanged(object? sender, ChunkPosChangedArgs args)
     {
-        SetPosition(position ?? Position, velocity ?? Velocity, rotation ?? Rotation);
+        var x = new SetCenterChunk((int)args.ChunkPos.X, (int)args.ChunkPos.Y);
+        ChunkPosition = args.ChunkPos;
+        QueuePacket(x);
     }
-
-
     
-    private void SetPosition(Vector3 position, Vector3 velocity, Vector2 rotation)
+    public override void SetPosition(Vector3? position = null, Vector3? velocity = null, Vector2? rotation = null)
     {
-        var lastChunkX = Math.Floor(Position.X / 16);
-        var lastChunkZ = Math.Floor(Position.Z / 16);
-        var currentChunkX = Math.Floor(position.X / 16);
-        var currentChunkZ = Math.Floor(position.Z / 16);
-
-        var lastPos = Position;
-
-        Position = position;
-        Velocity = velocity;
-        Rotation = rotation;
+        var lastPos = Position; 
+        base.SetPosition(position, velocity, rotation);
        
-        
-        if (Math.Abs(lastChunkX - currentChunkX) > 0.1 || Math.Abs(lastChunkZ - currentChunkZ) > 0.1)
-        {
-            // Chunk changed
-            var x = new SetCenterChunk((int)currentChunkX, (int)currentChunkZ);
-            QueuePacket(x);
-        }
-        
         if (Vector3.Distance(lastPos, Position) > 1)
         {
             SynchronizePosition(); 

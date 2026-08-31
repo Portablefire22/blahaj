@@ -4,11 +4,15 @@ namespace blahaj.blahaj.Network.Packets.Play.ToClient;
 
 public class ChunkDataWithLight : Packet
 {
-    public ChunkDataWithLight() : base(0x2d)
+    public ChunkDataWithLight(int chunkX, int chunkZ) : base(0x2d)
     {
+        ChunkZ =  chunkZ;
+        ChunkX = chunkX;
         for (int i = 0; i < 24; i++)
         {
-            ChunkSections[i] = new ChunkSection();
+            var chunk = new ChunkSection();
+                chunk.BlockStates[0].Palette = [(byte)1];
+            ChunkSections[i] = chunk;
         }
     }
     

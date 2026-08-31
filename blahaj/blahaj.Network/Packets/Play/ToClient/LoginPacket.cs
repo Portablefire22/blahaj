@@ -57,8 +57,8 @@ public class LoginPacket : Packet
         stream.WriteVarInt(Settings.DimensionType);
         stream.WriteString(DimensionName);
         stream.WriteLong(Settings.HashedSeed);
-        stream.WriteUnsignedByte(Settings.DefaultGameMode);
-        stream.WriteByte((sbyte)Settings.DefaultGameMode);
+        stream.WriteUnsignedByte(GameMode);
+        stream.WriteByte((sbyte)PreviousGameMode);
         stream.WriteBool(Settings.IsDebug);
         stream.WriteBool(Settings.IsFlat);
         stream.WriteBool(HasDeathLocation);
