@@ -142,7 +142,7 @@ public class NetClient : IDisposable
                     }
 
                     OnPacketReceived?.Invoke(this, args);
-                    Thread.Sleep(1);
+                    Task.Delay(1).Wait();
                 }
             }
         }
@@ -220,7 +220,7 @@ public class NetClient : IDisposable
             {
                 if (!WriteQueue.TryTake(out var packet))
                 {
-                    Task.Delay(10);
+                    Task.Delay(10).Wait();
                     continue;
                 }
                 var stream = new MemoryStream();

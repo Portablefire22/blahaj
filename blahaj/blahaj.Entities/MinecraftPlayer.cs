@@ -59,15 +59,14 @@ public class MinecraftPlayer : Entity
         
     }
     
-    private void KeepAlive()
+    private async void KeepAlive()
     {
+        Connected = true;
         while (Connected)
         {
-            Logger.LogDebug($"Sending Keep Alive");
             if (LastKeepAliveId != 0 && LastReceivedKeepAliveId != LastKeepAliveId)
             {
                 Connected = false;
-                Logger.LogError($"Keep alive mismatch");
                 return;
             }
             
@@ -76,7 +75,7 @@ public class MinecraftPlayer : Entity
             var x = new KeepAlive(id);
             QueuePacket(x);
             LastKeepAliveId = id;
-            Task.Delay(5000).Wait();
+            await Task.Delay(5000);
         }
         // Task will be immediately collected without
         GC.KeepAlive(KeepAliveTask);
@@ -106,7 +105,6 @@ public class MinecraftPlayer : Entity
     {
         var x = new LoginPacket(settings, Id, "overworld", false, null, null, 0, 1);
         QueuePacket(x);
-        Connected = true;
         
         NetClient.Server.OnPlayerConnected.Invoke(this, new PlayerConnectedArgs(this));
         
