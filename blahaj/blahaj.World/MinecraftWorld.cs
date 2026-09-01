@@ -18,8 +18,11 @@ public class MinecraftWorld
     {
         WorldSettings = worldSettings;
         _server = server;
+
+        var random = new Random();
         
-        Dimensions =  [new MinecraftDimension(_server, this, "minecraft:overworld", 0)
+        
+        Dimensions =  [new MinecraftDimension(_server, this, "minecraft:overworld", random.Next())
         {
             IsDefault = true
         }];

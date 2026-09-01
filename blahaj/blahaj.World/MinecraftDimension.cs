@@ -121,7 +121,7 @@ public class MinecraftDimension
                 AddEntity((Entity)action.Data);
                 break;
             case ActionType.LoadChunk:
-                if (!ChunkManager.LoadChunk((KeyValuePair<int, int>)action.Data, out var chunk)) break;
+                if (!ChunkManager.LoadChunk((KeyValuePair<int, int>)action.Data, out var chunk));
                 var data = new ChunkDataWithLight(chunk);
                 foreach (var player in _players)
                 {

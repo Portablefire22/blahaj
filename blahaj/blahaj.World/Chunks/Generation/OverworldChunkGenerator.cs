@@ -24,7 +24,7 @@ public class OverworldChunkGenerator : ChunkGenerator
         var heightmap = new float[16, 16];
 
 
-        var scale = 1f;
+        var scale = 1f;// 0.001f;
         
         for (int z = 0; z < 16; z++)
         {
@@ -82,14 +82,25 @@ public class OverworldChunkGenerator : ChunkGenerator
         noise.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
         noise.SetDomainWarpAmp(5);
 
-        float scale = 0.05f;
+        float scale = 0.5f;// * 0.001f;
         
         var value = noise.GetNoise(x * scale, z * scale);
 
         var lerpFactor = MathF.Abs((value + 1) / 2f);
         var lerpValue = 0.5f;
         var normalSea = SeaLevel - 63;
-        if (value <= -.25)
+
+        var spline = new Spline(
+            [
+                new SplinePoint(-1, 0),
+            new SplinePoint(-0.25f, normalSea),
+            new SplinePoint(0.4f, 80),
+            new SplinePoint(0.8f, 100),
+            new SplinePoint(1f, 275),
+            
+        ]);
+        
+        /*if (value <= -.25)
         {
             //lerpValue = float.Lerp(50, 100, lerpFactor);
             lerpValue = GetPoint(-1, -.25f, 0, normalSea, value);
@@ -105,13 +116,64 @@ public class OverworldChunkGenerator : ChunkGenerator
         {
             //lerpValue = float.Lerp(150, 200,  lerpFactor);
             lerpValue = GetPoint(0.8f, 1f, 230, 275, value);
-        }
+        }*/
 
+        lerpValue = spline.GetValue(value);
+        
         lerpValue += 63;
         return lerpValue;
     }
+    
+    
+    
 
+    
+}
 
+public class Spline
+{
+    public Spline(SplinePoint[] points)
+    {
+        Points = points;
+    }
+
+    public SplinePoint[] Points { get; set; }
+
+    public float GetValue(float value)
+    {
+        // Figure out which bounds of the spline we're in
+
+        SplinePoint start = new SplinePoint(-1,0);
+        SplinePoint end = new SplinePoint(1,0); 
+
+        if (Math.Abs(Points[0].Value - 1f) < 0.01f)
+        {
+            start = new SplinePoint(-1, Points[0].Value);    
+        }
+
+        if (Math.Abs(Points[^1].Value - 1f) < 0.01f)
+        {
+            end = new SplinePoint(-1, Points[^1].Value);
+        }
+
+        for (int i = 0; i < Points.Length; i++)
+        {
+            if (Points[i].Value <=  value)
+            {
+                start = Points[i];  
+            }
+
+            if (i + 1 >= Points.Length) continue;
+            
+            if (Points[i + 1].Value >= value)
+            {
+                end = Points[i + 1];
+            }
+        }
+        
+        return GetPoint(start.Position, end.Position, start.Value, end.Value, value); 
+    } 
+    
     private float GetPoint(float start, float stop, float min, float max, float value)
     {
         var width = stop - start;
@@ -119,5 +181,18 @@ public class OverworldChunkGenerator : ChunkGenerator
         var dx = diff / width;
         var y = max - (dx * stop);
         return y + (value * dx);
+    }
+
+}
+
+public class SplinePoint
+{
+    public float Position;
+    public float Value;
+
+    public SplinePoint(float position, float value)
+    {
+        Position = position;
+        Value = value;
     }
 }
