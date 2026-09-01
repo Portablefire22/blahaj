@@ -71,6 +71,49 @@ public class OverworldChunkGenerator : ChunkGenerator
         return chunk;
     }
 
+    private float GetCave(int x, int y, int z)
+    {
+        FastNoiseLite noise = new FastNoiseLite(Seed);
+        /*noise.SetFractalOctaves(3);
+        noise.SetFractalType(FastNoiseLite.FractalType.FBm);*/
+        noise.SetFrequency(0.01f);
+        noise.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
+        
+        /*
+        noise.SetDomainWarpType(FastNoiseLite.DomainWarpType.OpenSimplex2);
+        */
+        /*
+        noise.SetDomainWarpAmp(5);
+        */
+
+        float scale = 1f;// * 0.001f;
+        
+        var value = noise.GetNoise(x * scale, y * scale, z * scale);
+
+        var lerpValue = 0.5f;
+
+        var spline = new Spline(
+        [
+            /*new SplinePoint(-0.2f, 0),
+            new SplinePoint(-0.25f, 1),
+            /*new SplinePoint(-0.3f, 0),
+            
+            new SplinePoint(0.2f, 0),#1#
+            new SplinePoint(0.25f, 1),
+            new SplinePoint(0.3f, 0),*/
+            
+            
+            new SplinePoint(-0.25f, 0),
+            new SplinePoint(-0.3f, 1),
+
+            new SplinePoint(0.2f, 1),
+            new SplinePoint(0.25f, 0),
+        ]);
+        
+        lerpValue = spline.GetValue(value);
+        return lerpValue;
+    }
+
     private float GetContinental(int x, int z)
     {
         FastNoiseLite noise = new FastNoiseLite(Seed);
@@ -92,7 +135,8 @@ public class OverworldChunkGenerator : ChunkGenerator
 
         var spline = new Spline(
             [
-                new SplinePoint(-1, 0),
+                new SplinePoint(-1, -30),
+                new SplinePoint(-0.5f, 0),
             new SplinePoint(-0.25f, normalSea),
             new SplinePoint(0.4f, 80),
             new SplinePoint(0.8f, 100),
@@ -146,28 +190,31 @@ public class Spline
         SplinePoint start = new SplinePoint(-1,0);
         SplinePoint end = new SplinePoint(1,0); 
 
-        if (Math.Abs(Points[0].Value - 1f) < 0.01f)
+        if (Math.Abs(Points[0].Position + 1f) < 0.01f)
         {
             start = new SplinePoint(-1, Points[0].Value);    
         }
 
-        if (Math.Abs(Points[^1].Value - 1f) < 0.01f)
+        if (Math.Abs(Points[^1].Position - 1f) < 0.01f)
         {
-            end = new SplinePoint(-1, Points[^1].Value);
+            end = new SplinePoint(1, Points[^1].Value);
         }
 
+        bool foundEnd = false;
+        
         for (int i = 0; i < Points.Length; i++)
         {
-            if (Points[i].Value <=  value)
+            if (Points[i].Position <=  value)
             {
                 start = Points[i];  
             }
 
             if (i + 1 >= Points.Length) continue;
             
-            if (Points[i + 1].Value >= value)
+            if (!foundEnd && Points[i + 1].Position >= value)
             {
                 end = Points[i + 1];
+                foundEnd = true;
             }
         }
         
