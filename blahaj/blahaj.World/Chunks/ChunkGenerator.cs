@@ -19,9 +19,10 @@ public abstract class ChunkGenerator
     {
         switch (identifer)
         {
+            case "minecraft:nether":
+                return new NetherChunkGenerator(seed);
             case "minecraft:overworld":
                 return new OverworldChunkGenerator(seed);
-                break;
             default:
                 return new DebugChunkGenerator(seed);
         }

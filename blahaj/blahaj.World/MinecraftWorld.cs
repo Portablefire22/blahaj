@@ -19,7 +19,7 @@ public class MinecraftWorld
         WorldSettings = worldSettings;
         _server = server;
         
-        Dimensions =  [new MinecraftDimension(_server, this, "minecraft:overworld", 7171)
+        Dimensions =  [new MinecraftDimension(_server, this, "minecraft:overworld", 0)
         {
             IsDefault = true
         }];
