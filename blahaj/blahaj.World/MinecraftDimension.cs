@@ -121,13 +121,16 @@ public class MinecraftDimension
                 AddEntity((Entity)action.Data);
                 break;
             case ActionType.LoadChunk:
-                if (!ChunkManager.LoadChunk((KeyValuePair<int, int>)action.Data, out var chunk));
+                if (!ChunkManager.LoadChunk((ChunkPos)action.Data, out var chunk));
                 var data = new ChunkDataWithLight(chunk);
                 foreach (var player in _players)
                 {
                     //if (Vector2.Distance(player.ChunkPosition, chunk.ChunkPosition) > 10) continue;
                     player.QueuePacket(data);
                 }
+                break;
+            case ActionType.UnloadChunk:
+                ChunkManager.DecrementLoaderEntities((ChunkPos)action.Data);
                 break;
             default:
                 throw new ArgumentException($"Invalid action type {action.Type}");
@@ -142,12 +145,36 @@ public class MinecraftDimension
         var player =  sender as MinecraftPlayer;
         if (player == null) return;
         var width = 7 + (World.WorldSettings.ViewDistance * 2);
+        
+        // Get overlap and remove non-overlapping old
+        var previous = args.OldChunkPos;
+        var oldChunks = new List<ChunkPos>();
+        
         for (int x = -(int) Math.Ceiling(width / 2f); x < (int) Math.Floor(width / 2f); x++)
         {
             for (int z = -(int) Math.Ceiling(width / 2f); z < (int) Math.Floor(width / 2f); z++)
             {
-                QueueAction(new WorldAction(ActionType.LoadChunk, new KeyValuePair<int, int>((int)(args.ChunkPos.X + x), (int)(args.ChunkPos.Y + z))));
+                oldChunks.Add(new ChunkPos((int)(x + previous.X), (int)(z + previous.Z)));
             }
+        }
+       
+        for (int x = -(int) Math.Ceiling(width / 2f); x < (int) Math.Floor(width / 2f); x++)
+        {
+            for (int z = -(int) Math.Ceiling(width / 2f); z < (int) Math.Floor(width / 2f); z++)
+            {
+                var pos = new ChunkPos((x + args.ChunkPos.X), (z + args.ChunkPos.Z));
+                if (!oldChunks.Remove(pos))
+                {
+                    QueueAction(new WorldAction(ActionType.LoadChunk, pos));
+                }
+            }
+        }
+       
+        
+ 
+        foreach (var chunk in oldChunks)
+        {
+            QueueAction(new WorldAction(ActionType.UnloadChunk, chunk));
         }
     }
     
@@ -219,6 +246,8 @@ public class MinecraftDimension
             UpdateEntityMetadata(entity);
         }
     }
+
+    public Chunk GetChunk(ChunkPos chunkPosition) => ChunkManager.GetChunk(chunkPosition);
 
     
 }

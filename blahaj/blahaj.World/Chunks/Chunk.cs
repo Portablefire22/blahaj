@@ -9,12 +9,19 @@ namespace blahaj.blahaj.World.Chunks;
 public class Chunk : IDisposable
 {
     public int[,,] Blocks { get; set; }
+
+    /// <summary>
+    /// Number of entities that are loading this chunk
+    /// </summary>
+    public int LoaderEntities { get; set; } = 0;
     
-    public Vector2 ChunkPosition { get; set; }
+    public int[,] HeightMap { get; set; } = new int[16,16];
+    
+    public ChunkPos ChunkPosition { get; set; }
     
     public int WorldHeight { get; private set; }
 
-    public Chunk(Vector2 chunkPosition, int worldHeight)
+    public Chunk(ChunkPos chunkPosition, int worldHeight)
     {
         Blocks = new int[16, 16, worldHeight];
         ChunkPosition = chunkPosition;

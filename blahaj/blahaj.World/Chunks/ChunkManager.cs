@@ -24,14 +24,14 @@ public class ChunkManager
     /// </summary>
     public ChunkGenerator ChunkGenerator { get; set; }
     
-    public ConcurrentDictionary<KeyValuePair<int, int>, Chunk> LoadedChunks { get; set; } = [];
+    public ConcurrentDictionary<ChunkPos, Chunk> LoadedChunks { get; set; } = [];
 
     public void Tick()
     {
         if (LoadedChunks.IsEmpty) return;
         var startTick = DateTimeOffset.Now;
 
-        foreach (var ((chunkX, chunkZ), chunk) in LoadedChunks)
+        foreach (var (chunkPos, chunk) in LoadedChunks)
         {
             chunk.Tick();
         }
@@ -40,22 +40,44 @@ public class ChunkManager
         Logger.LogDebug($"Took {(endTick - startTick).TotalMilliseconds}ms to tick {LoadedChunks.Count} chunks");
     }
 
-    public Chunk GetChunk(int x, int z)
+    public Chunk GetChunk(int x, int z) => GetChunk(new ChunkPos(x, z));
+
+    public Chunk GetChunk(ChunkPos pos)
     {
-        return LoadedChunks.TryGetValue(new KeyValuePair<int, int>(x,z),  out var chunk) ? chunk : GenerateChunk(x, z);
+        return LoadedChunks.TryGetValue(pos,  out var chunk) ? chunk : GenerateChunk(pos.X, pos.Z);
     }
 
-    public bool LoadChunk(KeyValuePair<int, int> pos, out Chunk chunk)
+    public bool LoadChunk(ChunkPos pos, out Chunk chunk)
     {
-        if (LoadedChunks.TryGetValue(pos, out chunk)) return false;
+        if (LoadedChunks.TryGetValue(pos, out chunk))
+        {
+            chunk.LoaderEntities++;
+            return false;
+        }
         chunk = GenerateChunk(pos);
         LoadedChunks.TryAdd(pos, chunk);
+        chunk.LoaderEntities++;
         return true;
     }
     
-    public bool LoadChunk(int x, int z, out Chunk chunk) =>  LoadChunk(new KeyValuePair<int, int>(x, z), out chunk);
+    public bool LoadChunk(int x, int z, out Chunk chunk) =>  LoadChunk(new (x, z), out chunk);
 
-    private Chunk GenerateChunk(KeyValuePair<int, int> pos) => ChunkGenerator.Generate(pos);
+    /// <summary>
+    /// Decrements the number of loading entities for a chunk, unloading the chunk if the number of entities drops to 0
+    /// </summary>
+    /// <param name="pos">Chunk position</param>
+    /// <returns>True if the given chunk is deloaded, false is still loaded</returns>
+    public bool DecrementLoaderEntities(ChunkPos pos)
+    {
+        if (!LoadedChunks.TryGetValue(pos, out var chunk)) return true;
+        
+        chunk.LoaderEntities--;
+        if (chunk.LoaderEntities > 0) return false;
+        LoadedChunks.TryRemove(pos, out chunk);
+        return true;
+    }
+    
+    private Chunk GenerateChunk(ChunkPos pos) => ChunkGenerator.Generate(pos);
     private Chunk GenerateChunk(int x, int z) => ChunkGenerator.Generate(x, z);
     
 }

@@ -8,7 +8,7 @@ public class NetherChunkGenerator : ChunkGenerator
     {
     }
 
-    public override Chunk Generate(KeyValuePair<int, int> pos)
+    public override Chunk Generate(ChunkPos pos)
     {
         var blocks = new int[16, 16, 384];
 
@@ -32,7 +32,7 @@ public class NetherChunkGenerator : ChunkGenerator
         {
             for (int x = 0; x < 16; x++)
             {
-                var noiseValue = noise.GetNoise(x + (pos.Key * 16), z  + (pos.Value * 16f));
+                var noiseValue = noise.GetNoise(x + (pos.X * 16), z  + (pos.Z * 16f));
                 noiseValue *= 30;
                 
                 noiseValue = Math.Clamp(noiseValue, -30, 258);
@@ -68,7 +68,7 @@ public class NetherChunkGenerator : ChunkGenerator
                 for (int x = 0; x < 16; x++)
                 {
                     if (heightmap[x, z] < y) continue;
-                    var noiseValue = netherNoise.GetNoise(x + (pos.Key * 16), y, z + (pos.Value * 16f));
+                    var noiseValue = netherNoise.GetNoise(x + (pos.X * 16), y, z + (pos.Z * 16f));
 
                     noiseValue *= 0.5f;
                     
@@ -80,7 +80,7 @@ public class NetherChunkGenerator : ChunkGenerator
             }
         }
 
-        var chunk = new Chunk(new Vector2(pos.Key, pos.Value), 384)
+        var chunk = new Chunk(pos, 384)
         {
             Blocks =  blocks,
         };

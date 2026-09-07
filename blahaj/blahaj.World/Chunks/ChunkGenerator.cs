@@ -11,8 +11,8 @@ public abstract class ChunkGenerator
 
     public int Seed { get; }
 
-    public Chunk Generate(int x, int z) => Generate(new KeyValuePair<int, int>(x, z));
-    public abstract Chunk Generate(KeyValuePair<int, int> pos);
+    public Chunk Generate(int x, int z) => Generate(new (x, z));
+    public abstract Chunk Generate(ChunkPos pos);
     
     
     public static ChunkGenerator FromIdentifier(string identifer, int seed)

@@ -10,7 +10,7 @@ public class OverworldChunkGenerator : ChunkGenerator
 
     public int SeaLevel { get; set; } = 124;
     
-    public override Chunk Generate(KeyValuePair<int, int> pos)
+    public override Chunk Generate(ChunkPos pos)
     {
         var blocks = new int[16, 16, 384];
 
@@ -22,7 +22,8 @@ public class OverworldChunkGenerator : ChunkGenerator
         noise.SetNoiseType(FastNoiseLite.NoiseType.Perlin);
 
         var heightmap = new float[16, 16];
-
+    
+        var blockHeights = new int[16, 16];
 
         var scale = 1f;// 0.001f;
         
@@ -31,8 +32,8 @@ public class OverworldChunkGenerator : ChunkGenerator
             for (int x = 0; x < 16; x++)
             {
 
-                var scaledX = x + (pos.Key * 16);
-                var scaledZ = z + (pos.Value * 16);
+                var scaledX = x + (pos.X * 16);
+                var scaledZ = z + (pos.Z * 16);
                 
                 var noiseValue = noise.GetNoise(scaledX * scale,  scaledZ * scale);
                 noiseValue *= 20;
@@ -47,6 +48,8 @@ public class OverworldChunkGenerator : ChunkGenerator
                 var intHeight = (int)height;
 
                 blocks[15 - x,z, intHeight] = 9;
+
+                blockHeights[15 - x, z] = Math.Max(intHeight, SeaLevel);
                 
                 for (int y = 0; y < Math.Max(intHeight, SeaLevel); y++)
                 {
@@ -64,9 +67,10 @@ public class OverworldChunkGenerator : ChunkGenerator
                 }
             }
         }
-        var chunk = new Chunk(new Vector2(pos.Key, pos.Value), 384)
+        var chunk = new Chunk(pos, 384)
         {
             Blocks =  blocks,
+            HeightMap = blockHeights
         };
         return chunk;
     }
@@ -135,8 +139,8 @@ public class OverworldChunkGenerator : ChunkGenerator
 
         var spline = new Spline(
             [
-                new SplinePoint(-1, -30),
-                new SplinePoint(-0.5f, 0),
+                new SplinePoint(-1, -10),
+                new SplinePoint(-0.5f, normalSea / 2),
             new SplinePoint(-0.25f, normalSea),
             new SplinePoint(0.4f, 80),
             new SplinePoint(0.8f, 100),

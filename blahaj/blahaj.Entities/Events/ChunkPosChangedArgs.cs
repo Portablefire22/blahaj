@@ -1,13 +1,16 @@
 using System.Numerics;
+using blahaj.blahaj.World.Chunks;
 
 namespace blahaj.blahaj.Entities.Events;
 
 public class ChunkPosChangedArgs
 {
-    public ChunkPosChangedArgs(Vector2 chunkPos)
+    public ChunkPosChangedArgs(ChunkPos chunkPos, ChunkPos oldChunkPos)
     {
         ChunkPos = chunkPos;
+        OldChunkPos = oldChunkPos;
     }
 
-    public Vector2 ChunkPos { get; protected set; }
+    public ChunkPos OldChunkPos { get; protected set; }
+    public ChunkPos ChunkPos { get; protected set; }
 }

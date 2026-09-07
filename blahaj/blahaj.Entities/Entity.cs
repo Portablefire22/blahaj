@@ -4,6 +4,7 @@ using blahaj.blahaj.Network;
 using blahaj.blahaj.Network.Packets.Play.ToClient;
 using blahaj.blahaj.Network.Packets.Play.ToServer;
 using blahaj.blahaj.World;
+using blahaj.blahaj.World.Chunks;
 
 namespace blahaj.blahaj.Entities;
 
@@ -19,9 +20,9 @@ public class Entity
         Type = type;
     }
 
-    public Vector3 Position { get; protected set; }
+    public Vector3 Position { get; protected set; } = new Vector3(float.NegativeInfinity);
     
-    public Vector2 ChunkPosition { get; protected set; }
+    public ChunkPos ChunkPosition { get; protected set; }
     
     public Vector2 Rotation { get; protected set; } = new Vector2(0, 90f);
     public Vector3 Velocity { get; protected set; }
@@ -38,6 +39,17 @@ public class Entity
     
     // Has a tick occured since being created?
     private bool _afterFirstTick = false;
+
+    public Chunk GetChunk()
+    {
+        return Dimension!.GetChunk(ChunkPosition);
+    }
+
+    protected Chunk GetChunk(Vector2 position)
+    {
+        var chunkPos = new ChunkPos((int)position.X, (int)position.Y);
+        return Dimension!.GetChunk(chunkPos);
+    }
     
     public void UpdateMetadata()
     {
@@ -73,7 +85,11 @@ public class Entity
        
         if (Math.Abs(lastChunkX - currentChunkX) > 0.1 || Math.Abs(lastChunkZ - currentChunkZ) > 0.1)
         {
-            ChunkPosChanged.Invoke(this, new ChunkPosChangedArgs(new Vector2((float)currentChunkX, (float)currentChunkZ)));
+            var currentChunk = new ChunkPos((int)currentChunkX, (int)currentChunkZ);
+            
+            var oldChunk = new ChunkPos((int)lastChunkX, (int)lastChunkZ);
+            
+            ChunkPosChanged.Invoke(this, new ChunkPosChangedArgs(currentChunk, oldChunk));
         }
     }
     

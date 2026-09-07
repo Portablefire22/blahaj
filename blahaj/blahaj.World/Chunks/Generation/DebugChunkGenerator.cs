@@ -8,7 +8,7 @@ public class DebugChunkGenerator : ChunkGenerator
     {
     }
 
-    public override Chunk Generate(KeyValuePair<int, int> pos)
+    public override Chunk Generate(ChunkPos pos)
     {
 
         var blocks = new int[16, 16, 384];
@@ -60,7 +60,7 @@ public class DebugChunkGenerator : ChunkGenerator
             }
         }*/
         
-        var chunk = new Chunk(new Vector2(pos.Key, pos.Value), 384)
+        var chunk = new Chunk(pos, 384)
         {
            Blocks =  blocks,
         };

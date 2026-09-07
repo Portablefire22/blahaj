@@ -8,7 +8,7 @@ public class ChunkDataWithLight : Packet
     public ChunkDataWithLight(Chunk chunk) : base(0x2d)
     {
         ChunkX =  (int)chunk.ChunkPosition.X;
-        ChunkZ = (int)chunk.ChunkPosition.Y;
+        ChunkZ = (int)chunk.ChunkPosition.Z;
         ChunkSections = chunk.Split();
 
         ShouldLog = false;

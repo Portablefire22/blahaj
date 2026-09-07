@@ -67,8 +67,14 @@ public class MinecraftPlayer : Entity
     {
         base.OnSpawn();
         
-        Teleport(new Vector3(-82.5f, 72.0f, -501.5f), Velocity, Rotation);    
+        var chunk = GetChunk(new Vector2(-82.5f, -501.5f));
         
+        var innerChunkPosX = Math.Abs((int)Position.X % 16);
+        var innerChunkPosZ = Math.Abs((int)Position.Z % 16);
+        
+        var height = chunk.HeightMap[innerChunkPosX, innerChunkPosZ] - 65;
+        
+        Teleport(new Vector3(-82.5f, height, -501.5f), Velocity, Rotation);
         QueuePacket(new GameEvent(13, 0));
     }
 
@@ -134,7 +140,7 @@ public class MinecraftPlayer : Entity
 
     public void OnChunkPositionChanged(object? sender, ChunkPosChangedArgs args)
     {
-        var x = new SetCenterChunk((int)args.ChunkPos.X, (int)args.ChunkPos.Y);
+        var x = new SetCenterChunk((int)args.ChunkPos.X, (int)args.ChunkPos.Z);
         ChunkPosition = args.ChunkPos;
         QueuePacket(x);
     }
